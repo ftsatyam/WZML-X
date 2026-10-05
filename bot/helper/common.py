@@ -513,6 +513,12 @@ class TaskConfig:
                 pass
             else:
                 raise ValueError("Wrong Upload Destination!")
+                
+            if self.up_dest == "mega:" and (
+                not self.user_dict.get("MEGA_EMAIL")
+                or not self.user_dict.get("MEGA_PASSWORD")
+            ):
+                raise ValueError("Mega credentials not configured for this user.")
 
             if (
                 self.up_dest not in ["rcl", "gdl"]
