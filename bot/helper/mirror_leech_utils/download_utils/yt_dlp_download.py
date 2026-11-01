@@ -1,17 +1,19 @@
-from logging import getLogger
-from os import path as ospath, listdir
-from re import search as re_search
 from contextlib import suppress
+from logging import getLogger
+from os import listdir
+from os import path as ospath
+from re import search as re_search
 from secrets import token_hex
-from yt_dlp import YoutubeDL, DownloadError
 
-from .... import task_dict_lock, task_dict
+from yt_dlp import DownloadError, YoutubeDL
+
+from .... import task_dict, task_dict_lock
 from ....core.config_manager import BinConfig
-from ...ext_utils.bot_utils import sync_to_async, async_to_sync
+from ...ext_utils.bot_utils import async_to_sync, sync_to_async
 from ...ext_utils.task_manager import (
     check_running_tasks,
-    stop_duplicate_check,
     limit_checker,
+    stop_duplicate_check,
 )
 from ...mirror_leech_utils.status_utils.queue_status import QueueStatus
 from ...telegram_helper.message_utils import send_status_message
@@ -34,7 +36,6 @@ class MyLogger:
         self._listener = listener
 
     def debug(self, msg):
-        # Hack to fix changing extension
         if not self._obj.is_playlist:
             if match := re_search(
                 r".Merger..Merging formats into..(.*?).$", msg

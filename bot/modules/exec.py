@@ -1,14 +1,16 @@
-from aiofiles import open as aiopen
 from contextlib import redirect_stdout, suppress
-from io import StringIO, BytesIO
-from os import path as ospath, getcwd, chdir
+from io import BytesIO, StringIO
+from os import chdir, getcwd
+from os import path as ospath
+from re import match
 from textwrap import indent
 from traceback import format_exc
-from re import match
+
+from aiofiles import open as aiopen
 
 from .. import LOGGER
 from ..core.tg_client import TgClient
-from ..helper.ext_utils.bot_utils import sync_to_async, new_task
+from ..helper.ext_utils.bot_utils import new_task, sync_to_async
 from ..helper.telegram_helper.message_utils import send_file, send_message
 
 namespaces = {}
@@ -103,7 +105,7 @@ async def do(func, message):
                 result = f"{value}"
             else:
                 with suppress(Exception):
-                    result = f"{repr(await sync_to_async(eval, body, env))}"
+                    result = f"{await sync_to_async(eval, body, env)!r}"
         else:
             result = f"{value}{func_return}"
         if result:

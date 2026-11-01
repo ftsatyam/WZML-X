@@ -5,8 +5,8 @@ from asyncio import (
     sleep,
 )
 from asyncio.subprocess import PIPE
-from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from functools import partial, wraps
 from hashlib import sha256
 from hmac import new as hmac_new
@@ -32,8 +32,8 @@ from .help_messages import (
 )
 from .telegraph_helper import telegraph
 
-_SERVICE_PWD_SALT = b"wzmlx_v3_service_pwd_salt"
-_PIN_SALT = b"wzmlx_v3_pin_salt"
+_HKML_SERVICE_PWD_SALT = b"wzmlx_v3_service_pwd_salt"
+_HKML_PIN_SALT = b"wzmlx_v3_pin_salt"
 _PIN_LEN = 4
 _PIN_RATE_LIMIT = 5
 _PIN_RATE_WINDOW = 60
@@ -56,8 +56,8 @@ def derive_service_password(bot_id, service):
         bot_id = "0"
     secret = _shared_secret()
     digest = hmac_new(
-        _SERVICE_PWD_SALT,
-        f"{bot_id}:{service}".encode("utf-8"),
+        _HKML_SERVICE_PWD_SALT,
+        f"{bot_id}:{service}".encode(),
         sha256,
     )
     digest.update(secret)
@@ -79,28 +79,14 @@ def derive_pin(gid, bot_id):
     if not bot_id:
         bot_id = "0"
     sig = hmac_new(
-        _PIN_SALT,
-        f"{gid}|{bot_id}".encode("utf-8"),
+        _HKML_PIN_SALT,
+        f"{gid}|{bot_id}".encode(),
         sha256,
     ).hexdigest()
     digits = "".join(c for c in sig if c.isdigit())[:_PIN_LEN]
     if len(digits) < _PIN_LEN:
         digits = (digits + sig).ljust(_PIN_LEN, "0")[:_PIN_LEN]
     return digits
-
-
-def verify_pin(gid, pin, bot_id):
-    if not gid or not pin:
-        return False
-    if not pin.isdigit() or len(pin) != _PIN_LEN:
-        return False
-    expected = derive_pin(gid, bot_id)
-    if not expected:
-        return False
-    return (
-        hmac_new(_PIN_SALT, expected.encode(), sha256).hexdigest()
-        == hmac_new(_PIN_SALT, pin.encode(), sha256).hexdigest()
-    )
 
 
 COMMAND_USAGE = {}
@@ -306,9 +292,11 @@ def arg_parser(items, arg_base):
                         if not sub_list:
                             break
                         check = " ".join(sub_list).strip()
-                        if check.startswith("[") and check.endswith("]"):
-                            break
-                        elif not check.startswith("["):
+                        if (
+                            check.startswith("[")
+                            and check.endswith("]")
+                            or not check.startswith("[")
+                        ):
                             break
                     sub_list.append(items[j])
                 if sub_list:
@@ -398,15 +386,6 @@ async def sync_to_async(func, *args, wait=True, **kwargs):
 def async_to_sync(func, *args, wait=True, **kwargs):
     future = run_coroutine_threadsafe(func(*args, **kwargs), bot_loop)
     return future.result() if wait else future
-
-
-def loop_thread(func):
-    @wraps(func)
-    def wrapper(*args, wait=False, **kwargs):
-        future = run_coroutine_threadsafe(func(*args, **kwargs), bot_loop)
-        return future.result() if wait else future
-
-    return wrapper
 
 
 def safe_int(value, default=0):

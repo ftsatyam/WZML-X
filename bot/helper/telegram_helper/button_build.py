@@ -1,5 +1,5 @@
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from pyrogram.enums import ButtonStyle
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
 URL_SCHEMES = ("http://", "https://", "tg://")
 

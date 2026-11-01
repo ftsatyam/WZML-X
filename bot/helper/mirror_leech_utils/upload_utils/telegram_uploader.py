@@ -1,7 +1,9 @@
 from asyncio import ensure_future, gather, sleep
 from logging import getLogger
-from os import path as ospath, walk
-from re import match as re_match, sub as re_sub
+from os import path as ospath
+from os import walk
+from re import match as re_match
+from re import sub as re_sub
 from time import time
 
 from aioshutil import rmtree
@@ -17,6 +19,8 @@ except ImportError:
 
 from aiofiles.os import (
     path as aiopath,
+)
+from aiofiles.os import (
     remove,
     rename,
 )
@@ -32,12 +36,11 @@ from ....core.config_manager import Config
 from ....core.tg_client import TgClient
 from ...ext_utils.bot_utils import sync_to_async
 from ...ext_utils.files_utils import get_base_name, is_archive
-from ...ext_utils.status_utils import get_readable_file_size, get_readable_time
-
+from ...ext_utils.hyperul_utils import HypertgUpload
 from ...ext_utils.media_utils import get_md5_hash, get_media_info
+from ...ext_utils.status_utils import get_readable_file_size, get_readable_time
 from ...telegram_helper.message_utils import delete_message
 from ...telegram_helper.tg_copy import call_with_flood_retry as _call_with_flood_retry
-from ...ext_utils.hyperul_utils import HypertgUpload
 
 LOGGER = getLogger(__name__)
 
@@ -233,21 +236,45 @@ class TelegramUploader:
         ]
         for i in range(0, len(inputs), 10):
             batch = inputs[i : i + 10]
-            if Config.BOT_PM:
+            destination = self._listener.up_dest or self._sent_msg.chat.id
+            if self._bot_pm and destination != self._listener.user_id:
                 await _call_with_flood_retry(
                     TgClient.bot.send_media_group,
                     chat_id=self._listener.user_id,
                     media=batch,
                     disable_notification=True,
                 )
-            self._sent_msg = (
-                await _call_with_flood_retry(
+            if destination == self._sent_msg.chat.id:
+                sent = await _call_with_flood_retry(
                     self._sent_msg.reply_media_group,
                     media=batch,
                     reply_parameters=ReplyParameters(message_id=self._sent_msg.id),
                     disable_notification=True,
                 )
-            )[-1]
+            else:
+                client = (
+                    TgClient.bot
+                    if self._bot_pm and destination == self._listener.user_id
+                    else self._listener.client
+                )
+                sent = await _call_with_flood_retry(
+                    client.send_media_group,
+                    chat_id=destination,
+                    media=batch,
+                    message_thread_id=(
+                        self._listener.chat_thread_id
+                        if destination == self._listener.up_dest
+                        else None
+                    ),
+                    reply_parameters=(
+                        ReplyParameters(message_id=self._listener.pm_msg.id)
+                        if destination == self._listener.user_id
+                        and self._listener.pm_msg
+                        else None
+                    ),
+                    disable_notification=True,
+                )
+            self._sent_msg = sent[-1]
 
     async def _send_media_group(self, subkey, key, msgs):
         old_ids = [(msg[0], msg[1]) for msg in msgs]
@@ -386,7 +413,7 @@ class TelegramUploader:
                         f"Make sure bot has message delete permission: {e}"
                     )
                     continue
-            if self._bot_pm:
+            if self._bot_pm and copy_from_chat != self._listener.user_id:
                 try:
                     await _call_with_flood_retry(
                         TgClient.bot.copy_message,

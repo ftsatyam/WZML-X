@@ -1,9 +1,10 @@
-from aiofiles import open as aiopen
-from aiofiles.os import path as aiopath
 from asyncio import create_subprocess_exec
 from configparser import RawConfigParser
 
-from ....core.config_manager import Config, BinConfig
+from aiofiles import open as aiopen
+from aiofiles.os import path as aiopath
+
+from ....core.config_manager import BinConfig, Config
 
 RcloneServe = []
 

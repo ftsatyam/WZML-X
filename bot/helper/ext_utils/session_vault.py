@@ -17,7 +17,7 @@ class SessionLocked(Exception):
 
 
 class VaultEntry:
-    __slots__ = ("key", "salt", "expires")
+    __slots__ = ("expires", "key", "salt")
 
     def __init__(self, key, salt, expires):
         self.key = key

@@ -1,19 +1,20 @@
-from cloudscraper import create_scraper
+from base64 import b64decode, b64encode
 from functools import lru_cache
 from hashlib import sha256
 from http.cookiejar import MozillaCookieJar
 from json import loads
-from lxml.etree import HTML
 from os import path as ospath
 from re import findall, match, search, sub
-from niquests import Session, post, get
-from niquests.adapters import HTTPAdapter
 from time import sleep, time
 from urllib.parse import parse_qs, quote, urlparse
-from niquests.packages.urllib3.util.retry import Retry
 from uuid import uuid4
-from base64 import b64decode, b64encode
+
+from cloudscraper import create_scraper
 from curl_cffi import Session as CurlSession
+from lxml.etree import HTML
+from niquests import Session, get, post
+from niquests.adapters import HTTPAdapter
+from niquests.packages.urllib3.util.retry import Retry
 
 from ....core.config_manager import Config
 from ...ext_utils.exceptions import DirectDownloadLinkException
@@ -399,7 +400,9 @@ def transfer_it(url):
     api = "https://g.api.mega.co.nz/cs"
     with CurlSession(impersonate="chrome") as session:
         try:
-            info = session.post(api, params={"x": xh}, json=[{"a": "xi", "xh": xh}]).json()[0]
+            info = session.post(
+                api, params={"x": xh}, json=[{"a": "xi", "xh": xh}]
+            ).json()[0]
             name = b64decode(
                 info["t"].replace("-", "+").replace("_", "/") + "=="
             ).decode()
@@ -575,7 +578,7 @@ def buzzheavier(url):
                 return
             return d_url
         except Exception as e:
-            raise DirectDownloadLinkException(f"ERROR: {str(e)}") from e
+            raise DirectDownloadLinkException(f"ERROR: {e!s}") from e
 
     with CurlSession(impersonate="chrome") as session:
         response = session.get(url)
@@ -631,7 +634,7 @@ def fuckingfast_dl(url):
             )
 
     except Exception as e:
-        raise DirectDownloadLinkException(f"ERROR: {str(e)}") from e
+        raise DirectDownloadLinkException(f"ERROR: {e!s}") from e
 
 
 def lulacloud(url):
@@ -644,7 +647,7 @@ def lulacloud(url):
         res = post(url, headers={"Referer": url}, allow_redirects=False)
         return res.headers["location"]
     except Exception as e:
-        raise DirectDownloadLinkException(f"ERROR: {str(e)}") from e
+        raise DirectDownloadLinkException(f"ERROR: {e!s}") from e
 
 
 def devuploads(url):
@@ -718,7 +721,7 @@ def uploadhaven(url):
         a = html.xpath('//div[@class="alert alert-success mb-0"]//a')[0]
         return a.get("href")
     except Exception as e:
-        raise DirectDownloadLinkException(f"ERROR: {str(e)}") from e
+        raise DirectDownloadLinkException(f"ERROR: {e!s}") from e
 
 
 def mediafile(url):
@@ -749,7 +752,7 @@ def mediafile(url):
             i for i in findall(r'https://[^\s"\']+', html) if "download_token" in i
         ][1]
     except Exception as e:
-        raise DirectDownloadLinkException(f"ERROR: {str(e)}") from e
+        raise DirectDownloadLinkException(f"ERROR: {e!s}") from e
 
 
 def mediafire(url, session=None):
@@ -1129,8 +1132,7 @@ def terabox(url):
             with open(cfile) as f:
                 for line in f:
                     line = line.rstrip("\r\n")
-                    if line.startswith("#HttpOnly_"):
-                        line = line[len("#HttpOnly_") :]
+                    line = line.removeprefix("#HttpOnly_")
                     if not line or line.startswith("#"):
                         continue
                     parts = line.split(None, 6)
@@ -1153,8 +1155,7 @@ def terabox(url):
             surl = qs["surl"][0]
         elif "/s/" in parsed.path:
             surl = parsed.path.split("/s/", 1)[1].split("/", 1)[0]
-        if surl.startswith("1"):
-            surl = surl[1:]
+        surl = surl.removeprefix("1")
         if not surl:
             raise DirectDownloadLinkException(
                 "ERROR: Could not parse Terabox share URL"
@@ -1272,7 +1273,7 @@ def terabox(url):
                         "shareid": str(meta["shareid"]),
                         "uk": str(meta["uk"]),
                         "product": "share",
-                        "fid_list": f"[{str(fid)}]",
+                        "fid_list": f"[{fid!s}]",
                         "primaryid": str(meta["shareid"]),
                         "type": "nolimit",
                     },
@@ -2511,7 +2512,6 @@ def swisstransfer(link):
     for file in files:
         file_uuid = file["UUID"]
         file_name = file["fileName"]
-        # file_size = file["fileSizeInBytes"]
 
         token = gettoken(password, container_uuid, file_uuid)
         if not token:

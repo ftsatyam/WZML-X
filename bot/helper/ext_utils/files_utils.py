@@ -1,26 +1,36 @@
-from aioshutil import rmtree as aiormtree, move
 from asyncio import create_subprocess_exec, sleep, wait_for
 from asyncio.subprocess import PIPE
-from psutil import disk_usage
-from os import path as ospath, readlink, walk
-from re import I, escape, search as re_search, split as re_split
+from os import path as ospath
+from os import readlink, walk
+from re import IGNORECASE, escape
+from re import search as re_search
+from re import split as re_split
 
 from aiofiles.os import (
     listdir,
     remove,
     rmdir,
     symlink,
+)
+from aiofiles.os import (
     makedirs as aiomakedirs,
+)
+from aiofiles.os import (
     path as aiopath,
+)
+from aiofiles.os import (
     readlink as aioreadlink,
 )
+from aioshutil import move
+from aioshutil import rmtree as aiormtree
 from magic import Magic
+from psutil import disk_usage
 
 from ... import DOWNLOAD_DIR, LOGGER
 from ...core.torrent_manager import TorrentManager
 from .bot_utils import cmd_exec, sync_to_async
-from .filter_utils import matches_extension
 from .exceptions import NotSupportedExtractionArchive
+from .filter_utils import matches_extension
 
 ARCH_EXT = [
     ".tar.bz2",
@@ -98,7 +108,7 @@ SPLIT_REGEX = r"\.\w+\.\d{3}$|\.r\d+$|\.7z\.\d+$|\.z\d+$|\.zip\.\d+$|\.part\d+\.
 
 
 def is_first_archive_split(file):
-    return bool(re_search(FIRST_SPLIT_REGEX, file.lower(), I))
+    return bool(re_search(FIRST_SPLIT_REGEX, file.lower(), IGNORECASE))
 
 
 def is_archive(file):
@@ -106,7 +116,7 @@ def is_archive(file):
 
 
 def is_archive_split(file):
-    return bool(re_search(SPLIT_REGEX, file.lower(), I))
+    return bool(re_search(SPLIT_REGEX, file.lower(), IGNORECASE))
 
 
 async def clean_target(opath):
@@ -185,7 +195,7 @@ def get_base_name(orig_path):
         (ext for ext in ARCH_EXT if orig_path.strip().lower().endswith(ext)), ""
     )
     if extension != "":
-        return re_split(f"{extension}$", orig_path, maxsplit=1, flags=I)[0]
+        return re_split(f"{extension}$", orig_path, maxsplit=1, flags=IGNORECASE)[0]
     else:
         raise NotSupportedExtractionArchive("File format not supported for extraction")
 
@@ -278,7 +288,6 @@ async def split_file(f_path, split_size, listener):
     out_path = f"{f_path}."
     if listener.is_cancelled:
         return False
-    # pread parallel split
     listener.subproc = await create_subprocess_exec(
         "split",
         "--numeric-suffixes=1",
@@ -309,6 +318,7 @@ class SevenZ:
         self._listener = listener
         self._processed_bytes = 0
         self._percentage = "0%"
+        self._output = []
 
     @property
     def processed_bytes(self):
@@ -332,6 +342,8 @@ class SevenZ:
             line = line.decode().strip()
             if match := re_search(pattern, line):
                 self._listener.subsize = int(match[1] or match[2])
+            elif line:
+                self._output.append(line)
             await sleep(0.05)
         s = b""
         while not (
@@ -396,7 +408,11 @@ class SevenZ:
                 stderr = stderr.decode().strip()
             except Exception:
                 stderr = "Unable to decode the error!"
-            LOGGER.error(f"{stderr}. Unable to extract archive!. Path: {f_path}")
+            output = "\n".join((*self._output, stderr)).strip()
+            LOGGER.error(
+                f"7z extract failed with exit code {code}: "
+                f"{output or 'No diagnostic output'}. Path: {f_path}"
+            )
         return code
 
     async def zip(self, dl_path, up_path, pswd):
@@ -451,5 +467,9 @@ class SevenZ:
                 stderr = stderr.decode().strip()
             except Exception:
                 stderr = "Unable to decode the error!"
-            LOGGER.error(f"{stderr}. Unable to zip this path: {dl_path}")
+            output = "\n".join((*self._output, stderr)).strip()
+            LOGGER.error(
+                f"7z zip failed with exit code {code}: "
+                f"{output or 'No diagnostic output'}. Path: {dl_path}"
+            )
             return dl_path

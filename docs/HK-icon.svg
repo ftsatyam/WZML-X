@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 100 100" role="img" aria-label="HK logo">
+  <defs>
+    <linearGradient id="face" x1="50" y1="0" x2="50" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FAF8FF"/>
+      <stop offset="0.46" stop-color="#F4F2FE"/>
+      <stop offset="1" stop-color="#EEEAFB"/>
+    </linearGradient>
+
+    <linearGradient id="hk" gradientUnits="userSpaceOnUse" x1="15" y1="70" x2="86" y2="30">
+      <stop offset="0" stop-color="#430098"/>
+      <stop offset="0.5" stop-color="#7952B3"/>
+      <stop offset="0.76" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#B9A9FD"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="100" height="100" rx="22.5" fill="url(#face)"/>
+
+  <g fill="none"
+     stroke="url(#hk)"
+     stroke-width="9"
+     stroke-linecap="round"
+     stroke-linejoin="round">
+
+    <path d="M 23 30 V 70
+             M 23 50 H 43
+             M 43 30 V 70"/>
+
+    <path d="M 57 30 V 70
+             M 57 52 L 78 30
+             M 57 52 L 78 70"/>
+
+  </g>
+</svg>

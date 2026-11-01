@@ -1,17 +1,17 @@
 from .. import (
+    queue_dict_lock,
+    queued_dl,
+    queued_up,
     task_dict,
     task_dict_lock,
     user_data,
-    queued_up,
-    queued_dl,
-    queue_dict_lock,
 )
 from ..core.config_manager import Config
 from ..helper.ext_utils.bot_utils import new_task
 from ..helper.ext_utils.status_utils import get_task_by_gid
+from ..helper.ext_utils.task_manager import start_dl_from_queued, start_up_from_queued
 from ..helper.telegram_helper.bot_commands import BotCommands
 from ..helper.telegram_helper.message_utils import send_message
-from ..helper.ext_utils.task_manager import start_dl_from_queued, start_up_from_queued
 
 
 @new_task

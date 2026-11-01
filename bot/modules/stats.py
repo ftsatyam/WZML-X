@@ -1,11 +1,13 @@
-from asyncio import gather, sleep, wait_for, TimeoutError
-from pyrogram.enums import ButtonStyle
+import builtins
+from asyncio import gather, sleep, wait_for
 from platform import platform, version
 from re import search as research
 from time import time
 
 from aiofiles.os import path as aiopath
 from psutil import (
+    AccessDenied,
+    NoSuchProcess,
     Process,
     boot_time,
     cpu_count,
@@ -15,15 +17,14 @@ from psutil import (
     disk_usage,
     getloadavg,
     net_io_counters,
+    process_iter,
     swap_memory,
     virtual_memory,
-    process_iter,
-    NoSuchProcess,
-    AccessDenied,
 )
+from pyrogram.enums import ButtonStyle
 
-from .. import LOGGER, bot_cache, bot_start_time, bot_loop
-from ..core.config_manager import Config, BinConfig
+from .. import LOGGER, bot_cache, bot_start_time
+from ..core.config_manager import BinConfig, Config
 from ..helper.ext_utils.bot_lock import get_system_resources_cached
 from ..helper.ext_utils.bot_utils import (
     cmd_exec,
@@ -36,8 +37,8 @@ from ..helper.ext_utils.status_utils import (
     get_readable_file_size,
     get_readable_time,
 )
-from ..helper.telegram_helper.filters import CustomFilters
 from ..helper.telegram_helper.button_build import ButtonMaker
+from ..helper.telegram_helper.filters import CustomFilters
 from ..helper.telegram_helper.message_utils import (
     delete_message,
     edit_message,
@@ -48,10 +49,6 @@ from ..version import get_version
 commands = {
     "aria2": ([BinConfig.ARIA2_NAME, "--version"], r"aria2 version ([\d.]+)"),
     "qBittorrent": ([BinConfig.QBIT_NAME, "--version"], r"qBittorrent v([\d.]+)"),
-    "SABnzbd+": (
-        [BinConfig.SABNZBD_NAME, "--version"],
-        rf"{BinConfig.SABNZBD_NAME}-([\d.]+)",
-    ),
     "python": (["python3", "--version"], r"Python ([\d.]+)"),
     "rclone": ([BinConfig.RCLONE_NAME, "--version"], r"rclone v([\d.]+)"),
     "yt-dlp": (["yt-dlp", "--version"], r"([\d.]+)"),
@@ -61,16 +58,8 @@ commands = {
     ),
     "7z": (["7z", "i"], r"7-Zip ([\d.]+)"),
     "aiohttp": (["uv", "pip", "show", "aiohttp"], r"Version: ([\d.]+)"),
-    "wzgram": (["uv", "pip", "show", "wzgram"], r"Version: ([\d.]+)"),
+    "telegram_client": (["uv", "pip", "show", "wzgram"], r"Version: ([\d.]+)"),
     "gapi": (["uv", "pip", "show", "google-api-python-client"], r"Version: ([\d.]+)"),
-    "mega": (
-        [
-            "python3",
-            "-c",
-            "from mega import MegaApi; print(MegaApi('test').getVersion())",
-        ],
-        r"v?([\d.]+)",
-    ),
 }
 
 
@@ -164,7 +153,7 @@ async def get_stats(event, key="home"):
             changelog += f" | <code>{git_info.commit_hash()}</code>"
         official_v = (
             await cmd_exec(
-                f"curl -o latestversion.py https://raw.githubusercontent.com/SilentDemonSD/WZML-X/{Config.UPSTREAM_BRANCH}/bot/version.py -s && python3 latestversion.py && rm latestversion.py",
+                f"curl -o latestversion.py https://raw.githubusercontent.com/Imkrishana/HKML-X/{Config.UPSTREAM_BRANCH}/bot/version.py -s && python3 latestversion.py && rm latestversion.py",
                 True,
             )
         )[0]
@@ -184,15 +173,13 @@ async def get_stats(event, key="home"):
 ┟ <b>python:</b> v{ver.get("python", "N/A")}
 ┠ <b>aria2:</b> v{ver.get("aria2", "N/A")}
 ┠ <b>qBittorrent:</b> v{ver.get("qBittorrent", "N/A")}
-┠ <b>SABnzbd+:</b> v{ver.get("SABnzbd+", "N/A")}
 ┠ <b>rclone:</b> v{ver.get("rclone", "N/A")}
 ┠ <b>yt-dlp:</b> v{ver.get("yt-dlp", "N/A")}
 ┠ <b>ffmpeg:</b> v{ver.get("ffmpeg", "N/A")}
 ┠ <b>7z:</b> v{ver.get("7z", "N/A")}
 ┠ <b>Aiohttp:</b> v{ver.get("aiohttp", "N/A")}
-┠ <b>WzGram:</b> v{ver.get("wzgram", "N/A")}
+┠ <b>WzGram:</b> v{ver.get("telegram_client", "N/A")}
 ┠ <b>Google API:</b> v{ver.get("gapi", "N/A")}
-┖ <b>MegaSDK:</b> v{ver.get("mega", "N/A")}
 """
     elif key == "tlimits":
         msg = f"""⌬ <b><i>Bot Task Limits :</i></b>
@@ -202,11 +189,8 @@ async def get_stats(event, key="home"):
 ┠ <b>GDriveDL Limit :</b> {Config.GD_DL_LIMIT or "∞"} GB
 ┠ <b>RCloneDL Limit :</b> {Config.RC_DL_LIMIT or "∞"} GB
 ┠ <b>Clone Limit :</b> {Config.CLONE_LIMIT or "∞"} GB
-┠ <b>JDown Limit :</b> {Config.JD_LIMIT or "∞"} GB
-┠ <b>NZB Limit :</b> {Config.NZB_LIMIT or "∞"} GB
 ┠ <b>YT-DLP Limit :</b> {Config.YTDLP_LIMIT or "∞"} GB
 ┠ <b>Playlist Limit :</b> {Config.PLAYLIST_LIMIT or "∞"}
-┠ <b>Mega Limit :</b> {Config.MEGA_LIMIT or "∞"} GB
 ┠ <b>Leech Limit :</b> {Config.LEECH_LIMIT or "∞"} GB
 ┠ <b>Archive Limit :</b> {Config.ARCHIVE_LIMIT or "∞"} GB
 ┠ <b>Extract Limit :</b> {Config.EXTRACT_LIMIT or "∞"} GB
@@ -305,7 +289,7 @@ async def stats_pages(_, query):
                 "❌ Access denied! Cannot kill this process.", show_alert=True
             )
         except Exception as e:
-            await query.answer(f"❌ Error: {str(e)}", show_alert=True)
+            await query.answer(f"❌ Error: {e!s}", show_alert=True)
 
         msg, btns = await get_stats(query, "systasks")
         await edit_message(message, msg, btns)
@@ -325,21 +309,10 @@ async def get_version_async(command, regex, timeout=5):
             return f"Error: {err}"
         match = research(regex, out)
         return match.group(1) if match else "-"
-    except TimeoutError:
+    except builtins.TimeoutError:
         return "Timeout"
     except Exception as e:
-        return f"Exception: {str(e)}"
-
-
-async def retry_mega_version():
-    await sleep(60)
-    command, regex = commands["mega"]
-    version = await get_version_async(command, regex, timeout=10)
-    if version != "Timeout" and not version.startswith("Exception"):
-        bot_cache["eng_versions"]["mega"] = version
-        LOGGER.info(f"MegaSDK Version Fetched: {version}")
-    else:
-        LOGGER.warning(f"Failed to fetch MegaSDK Version: {version}")
+        return f"Exception: {e!s}"
 
 
 @new_task
@@ -357,10 +330,5 @@ async def get_packages_version():
     else:
         last_commit = "No UPSTREAM_REPO"
     bot_cache["commit"] = last_commit
-
-    if bot_cache["eng_versions"]["mega"] in ["Timeout", "N/A"] or bot_cache[
-        "eng_versions"
-    ]["mega"].startswith("Exception"):
-        bot_loop.create_task(retry_mega_version())
 
     LOGGER.info("Fetched Package Versions!")

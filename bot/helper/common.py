@@ -1,15 +1,17 @@
 import re
 from asyncio import gather, sleep
 from contextlib import suppress
-from os import path as ospath, walk
-from pyrogram.types import Message
+from os import path as ospath
+from os import walk
 from re import sub
 from secrets import token_hex
 from shlex import split
 
-from aiofiles.os import listdir, makedirs, remove, path as aiopath
+from aiofiles.os import listdir, makedirs, remove
+from aiofiles.os import path as aiopath
 from aioshutil import move, rmtree
 from pyrogram.enums import ChatAction, ChatType
+from pyrogram.types import Message
 
 from .. import (
     DOWNLOAD_DIR,
@@ -22,7 +24,7 @@ from .. import (
     task_dict_lock,
     user_data,
 )
-from ..core.config_manager import Config, BinConfig
+from ..core.config_manager import BinConfig, Config
 from ..core.cpu import ffmpeg_layout
 from ..core.tg_client import TgClient
 from ..helper.ext_utils.bot_lock import ff_lock
@@ -34,7 +36,6 @@ from .ext_utils.bot_utils import (
     parse_dest,
     sync_to_async,
 )
-from .ext_utils.filter_utils import MessageFilter
 from .ext_utils.bulk_links import extract_bulk_links
 from .ext_utils.files_utils import (
     SevenZ,
@@ -45,12 +46,13 @@ from .ext_utils.files_utils import (
     is_first_archive_split,
     split_file,
 )
+from .ext_utils.filter_utils import MessageFilter
 from .ext_utils.links_utils import (
     is_gdrive_id,
     is_gdrive_link,
+    is_mega_link,
     is_rclone_path,
     is_telegram_link,
-    is_mega_link,
 )
 from .ext_utils.media_utils import (
     FFMpeg,
@@ -120,10 +122,7 @@ class TaskConfig:
         self.is_leech = False
         self.is_yt = False
         self.is_qbit = False
-        self.is_mega = False
-        self.is_nzb = False
         self.is_seedr = False
-        self.is_jd = False
         self.is_clone = False
         self.is_tg_clone = False
         self.is_uphoster = False
@@ -188,31 +187,23 @@ class TaskConfig:
         self.mode = tuple()
 
     def _set_mode_engine(self):
-        if self.is_nzb and self.link and "/getnzb/api/" in self.link:
-            try:
-                nzb_id = self.link.split("/getnzb/api/")[1].split("?")[0]
-                self.source_url = f"NZB: {nzb_id}"
-            except Exception:
-                self.source_url = "NZB Link"
-        else:
-            self.source_url = (
-                self.link
-                if len(self.link) > 0 and self.link.startswith("http")
-                else (
-                    f"https://t.me/share/url?url={self.link}"
-                    if self.link
-                    else self.message.link
-                )
+        self.source_url = (
+            self.link
+            if len(self.link) > 0 and self.link.startswith("http")
+            else (
+                f"https://t.me/share/url?url={self.link}"
+                if self.link
+                else self.message.link
             )
+        )
 
-        out_mode = f"#{'Leech' if self.is_leech else 'UphosterUpload' if self.is_uphoster else 'Clone' if self.is_clone else 'Mega' if self.up_dest in ('mega', 'mega:') else 'RClone' if self.up_dest.startswith('mrcc:') or is_rclone_path(self.up_dest) else 'GDrive' if self.up_dest.startswith(('mtp:', 'tp:', 'sa:')) or is_gdrive_id(self.up_dest) else 'UpHosters'}"
+        out_mode = f"#{'Leech' if self.is_leech else 'UphosterUpload' if self.is_uphoster else 'Clone' if self.is_clone else 'RClone' if self.up_dest.startswith('mrcc:') or is_rclone_path(self.up_dest) else 'GDrive' if self.up_dest.startswith(('mtp:', 'tp:', 'sa:')) or is_gdrive_id(self.up_dest) else 'UpHosters'}"
         out_mode += " (Zip)" if self.compress else " (Unzip)" if self.extract else ""
 
         self.is_rclone = is_rclone_path(self.link)
         self.is_gdrive = is_gdrive_link(self.source_url) if self.source_url else False
-        self.is_mega = is_mega_link(self.link) if self.source_url else False
 
-        in_mode = f"#{'Seedr' if self.is_seedr else 'Mega' if self.is_mega else 'qBit' if self.is_qbit else 'SABnzbd' if self.is_nzb else 'JDown' if self.is_jd else 'RCloneDL' if self.is_rclone else 'ytdlp' if self.is_ytdlp else 'TgMedia' if self.is_tg_clone else 'GDrive' if (self.is_clone or self.is_gdrive) else 'Aria2' if (self.source_url and self.source_url != self.message.link) else 'TgMedia'}"
+        in_mode = f"#{'Seedr' if self.is_seedr else 'Mega' if is_mega_link(self.link or '') else 'qBit' if self.is_qbit else 'RCloneDL' if self.is_rclone else 'ytdlp' if self.is_ytdlp else 'TgMedia' if self.is_tg_clone else 'GDrive' if (self.is_clone or self.is_gdrive) else 'Aria2' if (self.source_url and self.source_url != self.message.link) else 'TgMedia'}"
 
         self.mode = (in_mode, out_mode)
 
@@ -342,26 +333,25 @@ class TaskConfig:
             elif "RCLONE_FLAGS" not in self.user_dict and Config.RCLONE_FLAGS:
                 self.rc_flags = Config.RCLONE_FLAGS
         if self.link not in ["rcl", "gdl"]:
-            if not self.is_jd:
-                if is_rclone_path(self.link):
-                    if not self.link.startswith("mrcc:") and self.user_dict.get(
-                        "USER_TOKENS", False
-                    ):
-                        self.link = f"mrcc:{self.link}"
-                    await self.is_token_exists(self.link, "dl")
-                elif is_gdrive_link(self.link):
-                    if not self.link.startswith(
-                        ("mtp:", "tp:", "sa:")
-                    ) and self.user_dict.get("USER_TOKENS", False):
-                        self.link = f"mtp:{self.link}"
-                    await self.is_token_exists(self.link, "dl")
+            if is_rclone_path(self.link):
+                if not self.link.startswith("mrcc:") and self.user_dict.get(
+                    "USER_TOKENS", False
+                ):
+                    self.link = f"mrcc:{self.link}"
+                await self.is_token_exists(self.link, "dl")
+            elif is_gdrive_link(self.link):
+                if not self.link.startswith(
+                    ("mtp:", "tp:", "sa:")
+                ) and self.user_dict.get("USER_TOKENS", False):
+                    self.link = f"mtp:{self.link}"
+                await self.is_token_exists(self.link, "dl")
         elif self.link == "rcl":
-            if not self.is_ytdlp and not self.is_jd:
+            if not self.is_ytdlp:
                 self.link = await RcloneList(self).get_rclone_path("rcd")
                 if not is_rclone_path(self.link):
                     raise ValueError(self.link)
         elif self.link == "gdl":
-            if not self.is_ytdlp and not self.is_jd:
+            if not self.is_ytdlp:
                 self.link = await GoogleDriveList(self).get_target_id("gdd")
                 if not is_gdrive_id(self.link):
                     raise ValueError(self.link)
@@ -462,12 +452,6 @@ class TaskConfig:
                     or self.up_dest == "gd"
                 ):
                     self.up_dest = self.user_dict.get("GDRIVE_ID") or Config.GDRIVE_ID
-                elif not self.is_uphoster and (
-                    (not self.up_dest and default_upload == "mega")
-                    or self.up_dest == "mega"
-                ):
-                    self.up_dest = "mega:"
-
                 if self.is_uphoster and not self.up_dest:
                     uphoster_service = self.user_dict.get("UPHOSTER_SERVICE", "gofile")
                     services = uphoster_service.split(",")
@@ -501,8 +485,6 @@ class TaskConfig:
                     ("mtp:", "tp:", "sa:")
                 ) and self.user_dict.get("USER_TOKENS", False):
                     self.up_dest = f"mtp:{self.up_dest}"
-            elif self.up_dest == "mega:":
-                pass
             elif is_rclone_path(self.up_dest):
                 if not self.up_dest.startswith("mrcc:") and self.user_dict.get(
                     "USER_TOKENS", False
@@ -514,11 +496,7 @@ class TaskConfig:
             else:
                 raise ValueError("Wrong Upload Destination!")
 
-            if (
-                self.up_dest not in ["rcl", "gdl"]
-                and not self.is_uphoster
-                and self.up_dest != "mega:"
-            ):
+            if self.up_dest not in ["rcl", "gdl"] and not self.is_uphoster:
                 await self.is_token_exists(self.up_dest, "up")
 
             if self.up_dest == "rcl":
@@ -588,6 +566,8 @@ class TaskConfig:
                 self.transmission_mode = "both"
 
             self.up_dest = Config.LEECH_LOG_CHAT
+            if not self.up_dest and self.bot_pm:
+                self.up_dest = self.user_id
             if self.dump_dest:
                 self.up_dest = await self.resolve_dump_dest(self.dump_dest)
                 if self.is_cancelled:
@@ -797,8 +777,6 @@ class TaskConfig:
             message=nextmsg,
             is_qbit=self.is_qbit,
             is_leech=self.is_leech,
-            is_jd=self.is_jd,
-            is_nzb=self.is_nzb,
             is_seedr=self.is_seedr,
             is_uphoster=self.is_uphoster,
             same_dir=self.same_dir,
@@ -844,8 +822,6 @@ class TaskConfig:
                 message=nextmsg,
                 is_qbit=self.is_qbit,
                 is_leech=self.is_leech,
-                is_jd=self.is_jd,
-                is_nzb=self.is_nzb,
                 is_seedr=self.is_seedr,
                 is_uphoster=self.is_uphoster,
                 same_dir=self.same_dir,
@@ -957,15 +933,20 @@ class TaskConfig:
                     is_video, is_audio, _ = await get_document_type(dl_path)
                     if not is_video and not is_audio:
                         break
-                    elif is_video and ext == "audio":
-                        continue
-                    elif is_audio and not is_video and ext == "video":
-                        continue
-                    elif ext not in [
-                        "all",
-                        "audio",
-                        "video",
-                    ] and not dl_path.strip().lower().endswith(ext):
+                    elif (
+                        is_video
+                        and ext == "audio"
+                        or is_audio
+                        and not is_video
+                        and ext == "video"
+                        or ext
+                        not in [
+                            "all",
+                            "audio",
+                            "video",
+                        ]
+                        and not dl_path.strip().lower().endswith(ext)
+                    ):
                         continue
                     new_folder = ospath.splitext(dl_path)[0]
                     if await aiopath.isfile(new_folder):
@@ -1019,17 +1000,22 @@ class TaskConfig:
                                 return False
                             f_path = ospath.join(dirpath, file_)
                             is_video, is_audio, _ = await get_document_type(f_path)
-                            if not is_video and not is_audio:
-                                continue
-                            elif is_video and ext == "audio":
-                                continue
-                            elif is_audio and not is_video and ext == "video":
-                                continue
-                            elif ext not in [
-                                "all",
-                                "audio",
-                                "video",
-                            ] and not f_path.strip().lower().endswith(ext):
+                            if (
+                                not is_video
+                                and not is_audio
+                                or is_video
+                                and ext == "audio"
+                                or is_audio
+                                and not is_video
+                                and ext == "video"
+                                or ext
+                                not in [
+                                    "all",
+                                    "audio",
+                                    "video",
+                                ]
+                                and not f_path.strip().lower().endswith(ext)
+                            ):
                                 continue
                             self.proceed_count += 1
                             var_cmd[index + 1] = f_path

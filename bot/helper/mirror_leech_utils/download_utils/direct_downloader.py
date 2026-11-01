@@ -7,8 +7,8 @@ from .... import (
 )
 from ...ext_utils.task_manager import (
     check_running_tasks,
-    stop_duplicate_check,
     limit_checker,
+    stop_duplicate_check,
 )
 from ...listeners.direct_listener import DirectListener
 from ...mirror_leech_utils.status_utils.direct_status import DirectStatus

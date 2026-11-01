@@ -1,5 +1,5 @@
 from .... import LOGGER
-from ...ext_utils.status_utils import get_readable_file_size, MirrorStatus, EngineStatus
+from ...ext_utils.status_utils import EngineStatus, MirrorStatus, get_readable_file_size
 
 
 class QueueStatus:

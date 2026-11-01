@@ -1,4 +1,4 @@
-from ...ext_utils.status_utils import MirrorStatus, EngineStatus
+from ...ext_utils.status_utils import EngineStatus, MirrorStatus
 
 
 class RcloneStatus:

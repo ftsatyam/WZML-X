@@ -1,10 +1,10 @@
-from asyncio import sleep, gather
+from asyncio import gather, sleep
 
-from .... import LOGGER, qb_torrents, qb_listener_lock
+from .... import LOGGER, qb_listener_lock, qb_torrents
 from ....core.torrent_manager import TorrentManager
 from ...ext_utils.status_utils import (
-    MirrorStatus,
     EngineStatus,
+    MirrorStatus,
     get_readable_file_size,
     get_readable_time,
 )

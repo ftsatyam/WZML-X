@@ -1,6 +1,6 @@
 from logging import getLogger
 
-from .... import drives_names, drives_ids, index_urls, user_data
+from .... import drives_ids, drives_names, index_urls, user_data
 from ....helper.ext_utils.status_utils import get_readable_file_size
 from ....helper.mirror_leech_utils.gdrive_utils.helper import GoogleDriveHelper
 

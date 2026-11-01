@@ -61,7 +61,6 @@ class BaseUpload:
 
     async def _validate_token(self):
         """Override to validate API token before upload."""
-        pass
 
     async def _upload_process(self):
         """Override: handle file vs dir dispatch, call on_upload_complete."""

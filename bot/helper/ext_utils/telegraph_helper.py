@@ -3,7 +3,7 @@ from secrets import token_hex
 
 from ... import LOGGER
 from ...core.config_manager import Config
-from .telegraph_utils import Telegraph, RetryAfterError
+from .telegraph_utils import RetryAfterError, Telegraph
 
 
 class TelegraphHelper:
@@ -73,10 +73,9 @@ class TelegraphHelper:
                     nxt_page += 1
             await self.edit_page(
                 path=path[prev_page],
-                title="WZML-X Torrent Search",
+                title="HKML-X Torrent Search",
                 content=content,
             )
-        return
 
 
 telegraph = TelegraphHelper(Config.AUTHOR_NAME, Config.AUTHOR_URL)

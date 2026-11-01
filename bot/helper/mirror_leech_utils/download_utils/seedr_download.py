@@ -4,12 +4,12 @@ from secrets import token_hex
 from .... import LOGGER, task_dict, task_dict_lock, user_data
 from ....core.config_manager import Config
 from ....core.seedr_client import SeedrClient
+from ...ext_utils.links_utils import is_magnet, is_url
 from ...ext_utils.task_manager import (
     check_running_tasks,
-    stop_duplicate_check,
     limit_checker,
+    stop_duplicate_check,
 )
-from ...ext_utils.links_utils import is_magnet, is_url
 from ...listeners.direct_listener import DirectListener
 from ...mirror_leech_utils.status_utils.direct_status import DirectStatus
 from ...mirror_leech_utils.status_utils.queue_status import QueueStatus

@@ -1,4 +1,6 @@
-from re import IGNORECASE, compile as re_compile, error as re_error
+from re import IGNORECASE
+from re import compile as re_compile
+from re import error as re_error
 
 DOC_ATTRS = ("document",)
 MEDIA_ATTRS = ("video", "audio", "photo", "animation", "voice", "video_note")
@@ -63,7 +65,7 @@ def has_any(message, attrs):
 
 
 class MessageFilter:
-    __slots__ = ("content_type", "exts", "name_in", "name_ex", "cap_in", "cap_ex")
+    __slots__ = ("cap_ex", "cap_in", "content_type", "exts", "name_ex", "name_in")
 
     def __init__(self, content_type="all", exts=(), patterns=None):
         if content_type not in CONTENT_TYPES:

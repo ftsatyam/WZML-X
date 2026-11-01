@@ -1,7 +1,8 @@
 from asyncio import Lock, sleep
-from time import time
 from secrets import token_hex
-from pyrogram.errors import FloodWait, PeerIdInvalid, ChannelInvalid
+from time import time
+
+from pyrogram.errors import ChannelInvalid, FloodWait, PeerIdInvalid
 
 from bot.helper.ext_utils.hyperdl_utils import HypertgDownload
 
@@ -15,8 +16,8 @@ from .... import (
     task_dict,
     task_dict_lock,
 )
-from ....core.tg_client import TgClient
 from ....core.config_manager import Config
+from ....core.tg_client import TgClient
 from ...ext_utils.task_manager import check_running_tasks, stop_duplicate_check
 from ...mirror_leech_utils.status_utils.queue_status import QueueStatus
 from ...mirror_leech_utils.status_utils.telegram_status import TelegramStatus
@@ -95,11 +96,9 @@ class TelegramDownloadHelper:
         await self._listener.on_download_complete()
         async with global_lock:
             GLOBAL_GID.pop(self._id)
-        return
 
     async def _download(self, message, path):
         try:
-            # TODO : Add support for user session ( Huh ??)
             if self._hyper_dl:
                 try:
                     self._hyper_dl_instance = HypertgDownload(self)

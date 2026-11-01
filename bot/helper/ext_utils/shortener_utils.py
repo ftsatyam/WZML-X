@@ -1,6 +1,6 @@
+from asyncio import sleep as asleep
 from base64 import b64encode
 from random import choice, random
-from asyncio import sleep as asleep
 from urllib.parse import quote
 
 from cloudscraper import create_scraper

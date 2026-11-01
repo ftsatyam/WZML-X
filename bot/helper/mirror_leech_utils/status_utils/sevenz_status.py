@@ -1,11 +1,11 @@
-from time import time
 from contextlib import suppress
+from time import time
 
 from .... import LOGGER
 from ...ext_utils.status_utils import (
-    get_readable_file_size,
-    MirrorStatus,
     EngineStatus,
+    MirrorStatus,
+    get_readable_file_size,
     get_readable_time,
 )
 

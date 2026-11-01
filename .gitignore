@@ -6,7 +6,6 @@ rclone.conf
 .netrc
 log.txt
 rlog.txt
-cfg.zip
 accounts/*
 thumbnails/*
 rclone/*
@@ -19,6 +18,10 @@ categories.txt
 cookies.txt
 terabox.txt
 downloads/*
+/qBittorrent/*
+!/qBittorrent/config/
+/qBittorrent/config/*
+!/qBittorrent/config/qBittorrent.conf
 .github/instructions/*
 .github/skills/*
 .github/agents/*

@@ -5,8 +5,8 @@ from ....core.torrent_manager import TorrentManager, aria2_name
 from ...ext_utils.status_utils import (
     EngineStatus,
     MirrorStatus,
-    get_readable_time,
     get_readable_file_size,
+    get_readable_time,
 )
 
 

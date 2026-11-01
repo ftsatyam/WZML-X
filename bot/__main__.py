@@ -1,9 +1,7 @@
-# ruff: noqa: E402
-
-import sys
 import faulthandler
-from sys import stderr
+import sys
 from logging import FileHandler, getLogger
+from sys import stderr
 
 faulthandler.enable(file=stderr, all_threads=True)
 
@@ -28,8 +26,8 @@ for _h in getLogger().handlers:
         break
 from .core.tg_client import TgClient
 from .helper.ext_utils.crash_reporter import (
-    send_unhandled_exception,
     send_async_exception,
+    send_unhandled_exception,
 )
 
 sys.excepthook = send_unhandled_exception
@@ -45,22 +43,11 @@ async def main():
         load_settings,
         save_settings,
         update_aria2_options,
-        update_nzb_options,
         update_qb_options,
         update_variables,
     )
 
     await load_settings()
-
-    if not Config.DISABLE_NZB:
-        from bot import _sabnzbd_key, _update_sabnzbd_ini, sabnzbd_client
-
-        derived_key = _sabnzbd_key()
-        _update_sabnzbd_ini(derived_key)
-        sabnzbd_client._default_params["apikey"] = derived_key
-        from .helper.ext_utils.db_handler import database
-
-        await database.update_nzb_config()
 
     from .helper.telegram_helper.bot_commands import BotCommands
 
@@ -86,16 +73,13 @@ async def main():
         TgClient.start_user(),
         TgClient.start_helper_bots(),
         TgClient.start_helper_users(),
-        TgClient.start_stream_bots(),
     )
     await gather(load_configurations(), update_variables())
 
     await gather(
         update_qb_options(),
         update_aria2_options(),
-        update_nzb_options(),
     )
-    from .core.jdownloader_booter import jdownloader
     from .helper.ext_utils.bot_utils import git_info, search_images
     from .helper.ext_utils.files_utils import clean_all
     from .helper.ext_utils.session_vault import SessionReaper
@@ -108,8 +92,6 @@ async def main():
 
     await save_settings()
     await git_info.init()
-    if not Config.DISABLE_JD:
-        bot_loop.create_task(jdownloader.boot())
     global _clean_task
     _clean_task = bot_loop.create_task(clean_all())
     bot_loop.create_task(initiate_search_tools())
@@ -161,14 +143,6 @@ from .helper.ext_utils.tunnel_monitor import start_tunnel_monitor
 
 start_tunnel_monitor()
 
-from .core.plugin_manager import get_plugin_manager
-from .modules.plugin_manager import register_plugin_commands
-
-plugin_manager = get_plugin_manager()
-plugin_manager.bot = TgClient.bot
-register_plugin_commands()
-bot_loop.run_until_complete(plugin_manager.boot())
-
 from .helper.ext_utils.mem_guard import monitor as memory_monitor
 
 memory_monitor.start()
@@ -218,9 +192,7 @@ from .helper.ext_utils.bot_utils import derive_service_password
 
 _bot_id = (Config.BOT_TOKEN or "").split(":", 1)[0] or "0"
 qbit_pwd = derive_service_password(_bot_id, "qbit")
-nzb_pwd = derive_service_password(_bot_id, "sabnzbd")
 LOGGER.info(f"Web UI: qBittorrent: /qbit/?pass={qbit_pwd}")
-LOGGER.info(f"Web UI: SABnzbd: /nzb/?pass={nzb_pwd}")
 
-LOGGER.info("WZ Client(s) & Services Started !")
+LOGGER.info("HKML-X clients and services started.")
 bot_loop.run_forever()

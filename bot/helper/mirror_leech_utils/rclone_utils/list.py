@@ -1,24 +1,25 @@
-from aiofiles import open as aiopen
-from aiofiles.os import path as aiopath
-from asyncio import wait_for, Event, gather
+from asyncio import Event, gather, wait_for
 from configparser import RawConfigParser
 from functools import partial
 from json import loads
-from pyrogram.filters import regex, user
-from pyrogram.enums import ButtonStyle
-from pyrogram.handlers import CallbackQueryHandler
 from time import time
 
+from aiofiles import open as aiopen
+from aiofiles.os import path as aiopath
+from pyrogram.enums import ButtonStyle
+from pyrogram.filters import regex, user
+from pyrogram.handlers import CallbackQueryHandler
+
 from .... import LOGGER
-from ....core.config_manager import Config, BinConfig
-from ...ext_utils.bot_utils import cmd_exec, update_user_ldata, new_task
+from ....core.config_manager import BinConfig, Config
+from ...ext_utils.bot_utils import cmd_exec, new_task, update_user_ldata
 from ...ext_utils.db_handler import database
 from ...ext_utils.status_utils import get_readable_file_size, get_readable_time
 from ...telegram_helper.button_build import ButtonMaker
 from ...telegram_helper.message_utils import (
-    send_message,
-    edit_message,
     delete_message,
+    edit_message,
+    send_message,
 )
 
 LIST_LIMIT = 6
@@ -54,7 +55,6 @@ async def path_updates(_, query, obj):
         else:
             await obj.back_from_path()
     elif data[1] == "re":
-        # some remotes has space
         data = query.data.split(maxsplit=2)
         obj.remote = data[2]
         await obj.get_path()

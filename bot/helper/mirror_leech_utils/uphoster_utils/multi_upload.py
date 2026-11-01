@@ -1,20 +1,20 @@
 from asyncio import gather
 from logging import getLogger
 
-from bot.helper.mirror_leech_utils.uphoster_utils.uploaders_utils.devuploads_uploader import (
-    DevUploadsUpload,
-)
-from bot.helper.mirror_leech_utils.uphoster_utils.uploaders_utils.vikingfile_uploader import (
-    VikingFileUpload,
-)
 from bot.helper.mirror_leech_utils.uphoster_utils.uploaders_utils.buzzheavier_uploader import (
     BuzzHeavierUpload,
+)
+from bot.helper.mirror_leech_utils.uphoster_utils.uploaders_utils.devuploads_uploader import (
+    DevUploadsUpload,
 )
 from bot.helper.mirror_leech_utils.uphoster_utils.uploaders_utils.gofile_uploader import (
     GoFileUpload,
 )
 from bot.helper.mirror_leech_utils.uphoster_utils.uploaders_utils.pixeldrain_uploader import (
     PixelDrainUpload,
+)
+from bot.helper.mirror_leech_utils.uphoster_utils.uploaders_utils.vikingfile_uploader import (
+    VikingFileUpload,
 )
 
 LOGGER = getLogger(__name__)

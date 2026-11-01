@@ -26,8 +26,10 @@ class SessionCrypt:
     MAXMEM = 128 * 1024 * 1024
     SALT_LEN = 16
     NONCE_LEN = 12
-    AAD_PREFIX = b"wzmlx.usess.v1:"
-    AAD_EXPORT = b"wzmlx.usettings.v1"
+    AAD_PREFIX = b"hkmlx.usess.v1:"
+    AAD_EXPORT = b"hkmlx.usettings.v1"
+    LEGACY_AAD_PREFIX = b"wzmlx.usess.v1:"
+    LEGACY_AAD_EXPORT = b"wzmlx.usettings.v1"
 
     _gate = Semaphore(2)
 
@@ -91,16 +93,31 @@ class SessionCrypt:
         }
 
     @classmethod
+    def aad_candidates(cls, scope):
+        if isinstance(scope, (bytes, bytearray)):
+            current = bytes(scope)
+            legacy = cls.LEGACY_AAD_EXPORT if current == cls.AAD_EXPORT else current
+        else:
+            suffix = str(int(scope)).encode()
+            current = cls.AAD_PREFIX + suffix
+            legacy = cls.LEGACY_AAD_PREFIX + suffix
+        return (current,) if current == legacy else (current, legacy)
+
+    @classmethod
     def open_with(cls, key, scope, record):
         try:
-            raw = AESGCM(bytes(key)).decrypt(
-                b64decode(record["nonce"]),
-                b64decode(record["ct"]),
-                cls.aad(scope),
-            )
-        except (InvalidTag, KeyError, TypeError, ValueError):
-            raise BadPassphrase("Wrong passphrase or corrupted record") from None
-        return raw.decode()
+            nonce = b64decode(record["nonce"])
+            ciphertext = b64decode(record["ct"])
+            cipher = AESGCM(bytes(key))
+            for aad in cls.aad_candidates(scope):
+                try:
+                    raw = cipher.decrypt(nonce, ciphertext, aad)
+                except InvalidTag:
+                    continue
+                return raw.decode()
+        except (KeyError, TypeError, ValueError):
+            pass
+        raise BadPassphrase("Wrong passphrase or corrupted record") from None
 
     @classmethod
     async def seal(cls, passphrase, scope, plaintext):

@@ -8,6 +8,7 @@ from time import time
 
 from aiofiles import open as aiopen
 from aiofiles.os import path as aiopath
+
 from bot.core.config_manager import Config
 
 from .. import DOWNLOAD_DIR, LOGGER, bot_loop, task_dict_lock, user_data
@@ -19,19 +20,19 @@ from ..helper.ext_utils.bot_utils import (
     new_task,
     sync_to_async,
 )
-from ..helper.ext_utils.status_utils import (
-    get_readable_file_size,
-    get_readable_time,
-)
 from ..helper.ext_utils.exceptions import DirectDownloadLinkException
 from ..helper.ext_utils.links_utils import (
     is_gdrive_id,
     is_gdrive_link,
-    is_mega_link,
     is_magnet,
+    is_mega_link,
     is_rclone_path,
     is_telegram_link,
     is_url,
+)
+from ..helper.ext_utils.status_utils import (
+    get_readable_file_size,
+    get_readable_time,
 )
 from ..helper.ext_utils.task_manager import pre_task_check
 from ..helper.listeners.task_listener import TaskListener
@@ -50,9 +51,7 @@ from ..helper.mirror_leech_utils.download_utils.direct_link_generator import (
     direct_link_generator,
 )
 from ..helper.mirror_leech_utils.download_utils.gd_download import add_gd_download
-from ..helper.mirror_leech_utils.download_utils.jd_download import add_jd_download
 from ..helper.mirror_leech_utils.download_utils.mega_download import add_mega_download
-from ..helper.mirror_leech_utils.download_utils.nzb_downloader import add_nzb
 from ..helper.mirror_leech_utils.download_utils.qbit_download import add_qb_torrent
 from ..helper.mirror_leech_utils.download_utils.rclone_download import (
     add_rclone_download,
@@ -66,8 +65,8 @@ from ..helper.mirror_leech_utils.download_utils.seedr_download import (
 from ..helper.mirror_leech_utils.download_utils.telegram_download import (
     TelegramDownloadHelper,
 )
-from ..helper.telegram_helper.button_build import ButtonMaker
 from ..helper.telegram_helper.bot_commands import BotCommands
+from ..helper.telegram_helper.button_build import ButtonMaker
 from ..helper.telegram_helper.message_utils import (
     auto_delete_message,
     delete_links,
@@ -84,8 +83,6 @@ class Mirror(TaskListener):
         message,
         is_qbit=False,
         is_leech=False,
-        is_jd=False,
-        is_nzb=False,
         is_seedr=False,
         is_uphoster=False,
         same_dir=None,
@@ -107,8 +104,6 @@ class Mirror(TaskListener):
         super().__init__()
         self.is_qbit = is_qbit
         self.is_leech = is_leech
-        self.is_jd = is_jd
-        self.is_nzb = is_nzb
         self.is_seedr = is_seedr
         self.is_uphoster = is_uphoster
 
@@ -359,8 +354,6 @@ class Mirror(TaskListener):
                 nextmsg,
                 self.is_qbit,
                 self.is_leech,
-                self.is_jd,
-                self.is_nzb,
                 self.is_seedr,
                 self.is_uphoster,
                 self.same_dir,
@@ -391,7 +384,7 @@ class Mirror(TaskListener):
                     reply_to = None
             elif reply_to.document and (
                 file_.mime_type == "application/x-bittorrent"
-                or file_.file_name.endswith((".torrent", ".dlc", ".nzb"))
+                or file_.file_name.endswith((".torrent",))
             ):
                 self.link = await reply_to.download()
                 file_ = None
@@ -413,6 +406,12 @@ class Mirror(TaskListener):
             await send_message(
                 self.message, COMMAND_USAGE["mirror"][0], COMMAND_USAGE["mirror"][1]
             )
+            await self.remove_from_same_dir()
+            await delete_links(self.message)
+            return
+
+        if is_mega_link(self.link) and Config.DISABLE_MEGA:
+            await send_message(self.message, "Mega downloads are currently disabled.")
             await self.remove_from_same_dir()
             await delete_links(self.message)
             return
@@ -466,22 +465,19 @@ class Mirror(TaskListener):
             if isinstance(resolved, dict):
                 self._alldebrid_magnet_id = resolved.get("magnet_id", 0)
                 self.link = resolved
-                self.is_jd = False
                 self.is_qbit = False
 
         if (
             isinstance(self.link, str)
-            and not self.is_jd
-            and not self.is_nzb
             and not self.is_seedr
             and not self.is_qbit
             and not is_magnet(self.link)
             and not is_rclone_path(self.link)
             and not is_gdrive_link(self.link)
+            and not is_mega_link(self.link)
             and not self.link.endswith(".torrent")
             and file_ is None
             and not is_gdrive_id(self.link)
-            and not is_mega_link(self.link)
         ):
             if self.is_alldebrid:
                 try:
@@ -533,12 +529,8 @@ class Mirror(TaskListener):
             )
         elif isinstance(self.link, dict):
             await add_direct_download(self, path)
-        elif self.is_jd:
-            await add_jd_download(self, path)
         elif self.is_qbit:
             await add_qb_torrent(self, path, ratio, seed_time)
-        elif self.is_nzb:
-            await add_nzb(self, path)
         elif self.is_seedr:
             await add_seedr_download(self, path)
         elif is_rclone_path(self.link):
@@ -546,7 +538,7 @@ class Mirror(TaskListener):
         elif is_gdrive_link(self.link) or is_gdrive_id(self.link):
             await add_gd_download(self, path)
         elif is_mega_link(self.link):
-            await add_mega_download(self, f"{path}/")
+            await add_mega_download(self, path)
         else:
             ussr = args["-au"]
             pssw = args["-ap"]
@@ -566,39 +558,6 @@ async def qb_mirror(client, message):
     bot_loop.create_task(Mirror(client, message, is_qbit=True).new_event())
 
 
-async def jd_mirror(client, message):
-    if Config.DISABLE_JD:
-        await message.reply("JDownloader is currently disabled by the Bot Owner.")
-        return
-    bot_loop.create_task(Mirror(client, message, is_jd=True).new_event())
-
-
-def hydra_nzb_id(message, cmd, force_extract=True):
-    text_parts = message.text.split()
-    if len(text_parts) > 1 and not text_parts[1].startswith(("http", "ftp", "/")):
-        potential_id = text_parts[1]
-        clean = potential_id.lstrip("-").replace("_", "")
-        if clean.isalnum() and not (potential_id.startswith("-") and clean.isalpha()):
-            nzb_url = f"{Config.HYDRA_IP.rstrip('/')}/getnzb/api/{potential_id}?apikey={Config.HYDRA_API_KEY}"
-            extra = " ".join(text_parts[2:])
-            message.text = f"{cmd} {nzb_url} -e {extra}".strip()
-            return potential_id
-    elif force_extract and "-e" not in message.text:
-        message.text += " -e"
-    return None
-
-
-async def nzb_mirror(client, message):
-    if Config.DISABLE_NZB:
-        await message.reply("SABnzbd is currently disabled by the Bot Owner.")
-        return
-    nzb_id = hydra_nzb_id(message, "/nzbmirror")
-    mirror_task = Mirror(client, message, is_nzb=True)
-    if nzb_id:
-        mirror_task.nzb_id = nzb_id
-    bot_loop.create_task(mirror_task.new_event())
-
-
 async def leech(client, message):
     bot_loop.create_task(Mirror(client, message, is_leech=True).new_event())
 
@@ -609,33 +568,8 @@ async def qb_leech(client, message):
     )
 
 
-async def jd_leech(client, message):
-    if Config.DISABLE_JD:
-        await message.reply("JDownloader is currently disabled by the Bot Owner.")
-        return
-    bot_loop.create_task(Mirror(client, message, is_leech=True, is_jd=True).new_event())
-
-
-async def nzb_leech(client, message):
-    if Config.DISABLE_NZB:
-        await message.reply("SABnzbd is currently disabled by the Bot Owner.")
-        return
-    nzb_id = hydra_nzb_id(message, "/nzbleech")
-    mirror_task = Mirror(client, message, is_leech=True, is_nzb=True)
-    if nzb_id:
-        mirror_task.nzb_id = nzb_id
-    bot_loop.create_task(mirror_task.new_event())
-
-
 async def uphoster(client, message):
-    nzb_id = hydra_nzb_id(message, "/uphoster", force_extract=False)
-    if nzb_id and Config.DISABLE_NZB:
-        await message.reply("SABnzbd is currently disabled by the Bot Owner.")
-        return
-    mirror_task = Mirror(client, message, is_uphoster=True, is_nzb=bool(nzb_id))
-    if nzb_id:
-        mirror_task.nzb_id = nzb_id
-    bot_loop.create_task(mirror_task.new_event())
+    bot_loop.create_task(Mirror(client, message, is_uphoster=True).new_event())
 
 
 async def clear_seedr_account(email, password):

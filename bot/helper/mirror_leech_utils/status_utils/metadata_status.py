@@ -1,8 +1,8 @@
 from .... import LOGGER
 from ...ext_utils.status_utils import (
-    get_readable_file_size,
     EngineStatus,
     MirrorStatus,
+    get_readable_file_size,
     get_readable_time,
 )
 

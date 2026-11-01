@@ -1,5 +1,4 @@
 from ...core.config_manager import Config
-from ...core.plugin_manager import get_plugin_manager
 
 
 class BotCommands:
@@ -9,15 +8,13 @@ class BotCommands:
     _static_commands = {
         "Mirror": ["mirror", "m"],
         "QbMirror": ["qbmirror", "qm"],
-        "JdMirror": ["jdmirror", "jm"],
         "Ytdl": ["ytdl", "y"],
         "UpHoster": ["uphoster", "up"],
-        "NzbMirror": ["nzbmirror", "nm"],
         "Leech": ["leech", "l"],
         "QbLeech": ["qbleech", "ql"],
-        "JdLeech": ["jdleech", "jl"],
         "YtdlLeech": ["ytdlleech", "yl"],
-        "NzbLeech": ["nzbleech", "nl"],
+        "MediaInfo": ["mediainfo", "mi"],
+        "Speedtest": ["speedtest", "spt"],
         "SeedrLink": ["seedrlink", "slink", "srlink"],
         "Clone": ["clone", "cl"],
         "Count": "count",
@@ -29,7 +26,6 @@ class BotCommands:
         "CancelAll": ["cancelall", "call"],
         "ForceStart": ["forcestart", "fs"],
         "Status": ["status", "s", "statusall"],
-        "Stream": ["stream", "sl"],
         "Ping": "ping",
         "Restart": ["restart", "r", "restartall"],
         "RestartSessions": ["restartses", "rses"],
@@ -54,10 +50,9 @@ class BotCommands:
         "UserSet": ["usetting", "us"],
         "LockSession": ["lockmysession", "lms"],
         "Select": ["select", "sel"],
+        "ExportSession": "exportsession",
         "CategorySelect": ["category", "ctsel"],
         "GDClean": ["gdclean", "gdc"],
-        "Plugins": "plugins",
-        "Memory": ["memory", "mem"],
     }
 
     @classmethod
@@ -66,25 +61,6 @@ class BotCommands:
             key: (list(value) if isinstance(value, list) else value)
             for key, value in cls._static_commands.items()
         }
-        taken = set()
-        for value in commands.values():
-            taken.update(value if isinstance(value, list) else [value])
-
-        plugin_manager = get_plugin_manager()
-        if plugin_manager:
-            for rec in plugin_manager.list_plugins():
-                if not rec.enabled:
-                    continue
-                for primary, names in rec.command_map().items():
-                    fresh = [name for name in names if name not in taken]
-                    if not fresh:
-                        continue
-                    key = primary.capitalize()
-                    if key in commands:
-                        key = f"{rec.name.capitalize()}{key}"
-                    commands[key] = fresh
-                    taken.update(fresh)
-
         return commands
 
     @classmethod

@@ -1,36 +1,35 @@
 from asyncio import create_subprocess_shell, gather, sleep
 from importlib import import_module
-from os import environ, path as ospath, getenv
+from os import environ, getenv
+from os import path as ospath
 
 from aiofiles import open as aiopen
-from aiofiles.os import makedirs, remove, path as aiopath
+from aiofiles.os import makedirs, remove
+from aiofiles.os import path as aiopath
 from aioshutil import rmtree
-
 
 from .. import (
     LOGGER,
-    bot_loop,
     aria2_options,
     auth_chats,
+    bot_loop,
     categories_dict,
     drives_ids,
     drives_names,
+    excluded_extensions,
     index_urls,
     list_drives_dict,
-    shortener_dict,
-    var_list,
-    user_data,
-    excluded_extensions,
-    nzb_options,
     qbit_options,
     rss_dict,
-    sabnzbd_client,
+    shortener_dict,
     sudo_users,
+    user_data,
+    var_list,
 )
 from ..helper.ext_utils.bot_utils import cmd_exec, derive_service_password
-from ..helper.ext_utils.deprecations import Deprecations
 from ..helper.ext_utils.db_handler import database
-from .config_manager import Config, BinConfig
+from ..helper.ext_utils.deprecations import Deprecations
+from .config_manager import BinConfig, Config
 from .tg_client import TgClient, db_partition_id
 from .torrent_manager import TorrentManager
 
@@ -76,26 +75,6 @@ async def update_aria2_options():
         await TorrentManager.aria2.changeGlobalOption(aria2_options)
 
 
-async def update_nzb_options():
-    if Config.DISABLE_NZB or not Config.USENET_SERVERS:
-        return
-    LOGGER.info("Get SABnzbd options from server")
-    retries = 10
-    for i in range(retries):
-        try:
-            no = (await sabnzbd_client.get_config())["config"]["misc"]
-            nzb_options.update(no)
-            break
-        except Exception as e:
-            if i == retries - 1:
-                LOGGER.error(
-                    f"Failed to get SABnzbd options after {retries} retries: {e}"
-                )
-                return
-            LOGGER.warning(f"SABnzbd not ready, retrying ({i + 1}/{retries}): {e}")
-            await sleep(2)
-
-
 async def load_settings():
     if not Config.DATABASE_URL:
         return
@@ -139,7 +118,6 @@ async def load_settings():
             database.db.settings.qbittorrent.find_one(deploy_filter, {"_id": 0})
             if not Config.DISABLE_TORRENTS
             else sleep(0),
-            database.db.settings.nzb.find_one(deploy_filter, {"_id": 0}),
             database.db.users[PART].find_one(),
             database.db.rss[PART].find_one(),
         )
@@ -149,7 +127,6 @@ async def load_settings():
             pf_dict,
             a2c_options,
             qbit_opt,
-            nzb_opt,
             user_exists,
             rss_exists,
         ) = results
@@ -194,16 +171,6 @@ async def load_settings():
         if qbit_opt:
             qbit_options.update(qbit_opt)
 
-        if nzb_opt:
-            if await aiopath.exists("configs/sabnzbd/SABnzbd.ini.bak"):
-                await remove("configs/sabnzbd/SABnzbd.ini.bak")
-            for key, value in nzb_opt.items():
-                if value:
-                    file_ = key.replace("__", ".")
-                    async with aiopen(f"configs/sabnzbd/{file_}", "wb+") as f:
-                        await f.write(value)
-            LOGGER.info("Loaded.. Sabnzbd Data from MongoDB")
-
         if user_exists:
             migrated = []
             rows = database.db.users[PART].find({})
@@ -245,9 +212,7 @@ async def load_settings():
                 for key in dead:
                     await database.update_user_doc(uid, key)
             if migrated:
-                LOGGER.info(
-                    f"Cleared deprecated settings for {len(migrated)} user(s)"
-                )
+                LOGGER.info(f"Cleared deprecated settings for {len(migrated)} user(s)")
 
         if rss_exists:
             rows = database.db.rss[PART].find({})
@@ -277,12 +242,6 @@ async def save_settings():
         )
     if await database.db.settings.qbittorrent.find_one(deploy_filter) is None:
         await database.save_qbit_settings()
-    if await database.db.settings.nzb.find_one(deploy_filter) is None:
-        async with aiopen("configs/sabnzbd/SABnzbd.ini", "rb+") as pf:
-            nzb_conf = await pf.read()
-        await database.db.settings.nzb.update_one(
-            deploy_filter, {"$set": {"SABnzbd__ini": nzb_conf}}, upsert=True
-        )
 
 
 async def update_variables():
@@ -376,15 +335,8 @@ async def load_configurations():
 
     from .cpu import service_cores
 
-    cmd = f'chmod 600 .netrc && cp .netrc /root/.netrc && chmod +x setpkgs.sh && ./setpkgs.sh {BinConfig.ARIA2_NAME} "{service_cores()}" {Config.CPU_LIMIT}'
-    if not Config.DISABLE_NZB:
-        cmd += f" {BinConfig.SABNZBD_NAME}"
+    cmd = f'chmod 600 .netrc && cp .netrc /root/.netrc && chmod +x setpkgs.sh && ./setpkgs.sh {BinConfig.ARIA2_NAME} "{service_cores()}"'
     await (await create_subprocess_shell(cmd)).wait()
-
-    if await aiopath.exists("cfg.zip"):
-        if await aiopath.exists("/JDownloader/cfg"):
-            await rmtree("/JDownloader/cfg", ignore_errors=True)
-        await cmd_exec(["7z", "x", "cfg.zip", "-o/JDownloader"])
 
     if await aiopath.exists("accounts.zip"):
         if await aiopath.exists("accounts"):
@@ -416,18 +368,13 @@ async def load_configurations():
             access_pwd = token_bytes(32).hex()
             Config.WEB_ACCESS_PASSWORD = access_pwd
         env = f"WEB_ACCESS_PASSWORD={access_pwd} "
-        bot_loop.create_task(cmd_exec(
-            f"{env}gunicorn -k uvicorn.workers.UvicornWorker -w 1 web.wserver:app --bind 0.0.0.0:{PORT}",
-            shell=True,
-        ))
+        bot_loop.create_task(
+            cmd_exec(
+                f"{env}gunicorn -k uvicorn.workers.UvicornWorker -w 1 web.wserver:app --bind 0.0.0.0:{PORT}",
+                shell=True,
+            )
+        )
         bot_loop.create_task(cmd_exec("python3 cron_boot.py", shell=True))
-
-    if Config.DISABLE_STREAM:
-        LOGGER.info("Streaming is disabled. Skipping stream server.")
-    else:
-        from .stream_server import spawn_stream_server
-
-        spawn_stream_server()
 
     from ..helper.ext_utils.tunnel_monitor import apply_tunnel_url_once
 

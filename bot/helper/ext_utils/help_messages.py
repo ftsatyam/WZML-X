@@ -1,4 +1,3 @@
-# ruff: noqa: F403, F405
 mirror = """<b>Send link along with command line or </b>
 
 /cmd link
@@ -399,7 +398,7 @@ MIRROR_HELP_DICT = {
     "DL-Auth": "<b>Direct link authorization</b>: -au -ap\n\n/cmd link -au username -ap password",
     "Headers": "<b>Direct link custom headers</b>: -h\n\n/cmd link -h key: value key1: value1",
     "Extract/Zip": extract_zip,
-    "Select-Files": "<b>Bittorrent/JDownloader/Sabnzbd File Selection</b>: -s\n\n/cmd link -s or by replying to file/link",
+    "Select-Files": "<b>Bittorrent File Selection</b>: -s\n\n/cmd link -s or by replying to file/link",
     "Torrent-Seed": seed,
     "Multi-Link": multi_link,
     "Same-Directory": same_dir,
@@ -468,7 +467,6 @@ PASSWORD_ERROR_MESSAGE = """
 
 
 def get_bot_commands():
-    from ...core.plugin_manager import get_plugin_manager
 
     static_commands = {
         "Mirror": "[link/file] Mirror to Upload Destination",
@@ -480,38 +478,27 @@ def get_bot_commands():
         "YtdlLeech": "[link] Leech YouTube, m3u8, Social Media and yt-dlp supported urls",
         "Clone": "[link] Clone files/folders to GDrive",
         "UserSet": "User personal settings",
+        "ExportSession": "[SUDO] Generate a Pyrogram String Session to Saved Messages.",
         "ForceStart": "[gid/reply] Force start from queued task",
         "Count": "[link] Count no. of files/folders in GDrive",
         "List": "[query] Search any Text which is available in GDrive",
         "Search": "[query] Search torrents via Qbit Plugins",
-        "Select": "[gid/reply] Select files for NZB, Aria2, Qbit Tasks",
+        "Select": "[gid/reply] Select files for Aria2 and qBittorrent tasks",
         "Ping": "Ping Bot to test Response Speed",
         "Status": "[id/me] Tasks Status of Bot",
         "Stats": "Bot, OS, Repo & System full Statistics",
         "Rss": "User RSS Management Settings",
         "CancelAll": "Cancel all Tasks on the Bot",
-        "Help": "Detailed help usage of the WZ Bot",
+        "Help": "Detailed help usage of the HKML-X",
         "BotSet": "[SUDO] Bot Management Settings",
         "Log": "[SUDO] Get Bot Logs for Internal Working",
-        "Memory": "[SUDO] Memory usage, caches and an allocation profiler",
+        "MediaInfo": "[reply/link] Get MediaInfo for media or a download link.",
+        "Speedtest": "Run a network speed test.",
         "Restart": "[SUDO] Reboot bot",
         "RestartSessions": "[SUDO] Reboot User Sessions",
     }
 
-    commands = static_commands.copy()
-
-    plugin_manager = get_plugin_manager()
-    if plugin_manager:
-        for plugin_info in plugin_manager.list_plugins():
-            if plugin_info.enabled and plugin_info.commands:
-                for cmd in plugin_info.commands:
-                    key = cmd.capitalize()
-                    if key not in commands:
-                        commands[key] = (
-                            plugin_info.description or f"Plugin command: {cmd}"
-                        )
-
-    return commands
+    return static_commands
 
 
 BOT_COMMANDS = get_bot_commands()
@@ -538,10 +525,6 @@ def get_help_string():
             help_lines.append(f"{cmd_str}: Start mirroring to cloud.")
         elif key == "QbMirror":
             help_lines.append(f"{cmd_str}: Start Mirroring to cloud using qBittorrent.")
-        elif key == "JdMirror":
-            help_lines.append(f"{cmd_str}: Start Mirroring to cloud using JDownloader.")
-        elif key == "NzbMirror":
-            help_lines.append(f"{cmd_str}: Start Mirroring to cloud using Sabnzbd.")
         elif key == "Ytdl":
             help_lines.append(f"{cmd_str}: Mirror yt-dlp supported link.")
         elif key == "UpHoster":
@@ -550,10 +533,6 @@ def get_help_string():
             help_lines.append(f"{cmd_str}: Start leeching to Telegram.")
         elif key == "QbLeech":
             help_lines.append(f"{cmd_str}: Start leeching using qBittorrent.")
-        elif key == "JdLeech":
-            help_lines.append(f"{cmd_str}: Start leeching using JDownloader.")
-        elif key == "NzbLeech":
-            help_lines.append(f"{cmd_str}: Start leeching using Sabnzbd.")
         elif key == "SeedrLink":
             help_lines.append(f"{cmd_str}: Get direct Seedr HTTP download links.")
         elif key == "YtdlLeech":
@@ -575,9 +554,7 @@ def get_help_string():
         elif key == "BotSet":
             help_lines.append(f"{cmd_str} [query]: Bot settings.")
         elif key == "Select":
-            help_lines.append(
-                f"{cmd_str}: Select files from torrents or nzb by gid or reply."
-            )
+            help_lines.append(f"{cmd_str}: Select files from torrents by gid or reply.")
         elif key == "CancelTask":
             help_lines.append(f"{cmd_str} [gid]: Cancel task by gid or reply.")
         elif key == "ForceStart":

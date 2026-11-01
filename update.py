@@ -12,7 +12,7 @@ from sys import exit
 getLogger("pymongo").setLevel(ERROR)
 
 _LOGGER = getLogger("update")
-_DB_PARTITION_SALT = b"wzmlx_v3_db_partition_salt"
+_DB_PARTITION_SALT = b"hkmlx_v3_db_partition_salt"
 
 _VAR_LIST = [
     "BOT_TOKEN",
@@ -23,6 +23,8 @@ _VAR_LIST = [
     "BASE_URL",
     "UPSTREAM_REPO",
     "UPSTREAM_BRANCH",
+    "ENABLE_TELEMETRY",
+    "CRASH_REPORT_URL",
 ]
 
 
@@ -70,7 +72,7 @@ def _db_partition_id(bot_id):
     return f"p_{raw[:24]}"
 
 
-async def _fetch_db_config(database_url, db_part, collection="config"):
+async def _fetch_db_config(database_url, db_parts, collection="config"):
     try:
         from pymongo import AsyncMongoClient
         from pymongo.server_api import ServerApi
@@ -80,9 +82,12 @@ async def _fetch_db_config(database_url, db_part, collection="config"):
         from pymongo.server_api import ServerApi
     conn = AsyncMongoClient(database_url, server_api=ServerApi("1"))
     try:
-        return await conn.wzmlx.settings[collection].find_one(
-            {"_id": db_part}, {"_id": 0}
-        )
+        settings = conn["wzmlx"].settings[collection]
+        for db_part in db_parts:
+            config = await settings.find_one({"_id": db_part}, {"_id": 0})
+            if config is not None:
+                return config
+        return None
     except Exception as e:
         _LOGGER.error(f"Database ERROR: {e}")
         return None
@@ -90,17 +95,19 @@ async def _fetch_db_config(database_url, db_part, collection="config"):
         await conn.close()
 
 
-def _fetch_config_from_db(config_file, db_part):
+def _fetch_config_from_db(config_file, db_parts):
     database_url = config_file.get("DATABASE_URL", "").strip()
     if not database_url:
         return
 
-    db_config = run(_fetch_db_config(database_url, db_part))
+    db_config = run(_fetch_db_config(database_url, db_parts))
     if db_config is None:
         _LOGGER.warning("No saved config found in MongoDB, using defaults")
         return
 
-    old_config = run(_fetch_db_config(database_url, db_part, collection="deployConfig"))
+    old_config = run(
+        _fetch_db_config(database_url, db_parts, collection="deployConfig")
+    )
     env_keys = {k: config_file[k] for k in _VAR_LIST if k in environ}
 
     if old_config is not None and old_config != config_file:
@@ -139,11 +146,11 @@ def _run_update(upstream_repo, upstream_branch, version):
         [
             "git",
             "config",
-            "--global",
+            "--local",
             "user.email",
-            "105407900+SilentDemonSD@users.noreply.github.com",
+            "noreply@github.com",
         ],
-        ["git", "config", "--global", "user.name", "SilentDemonSD"],
+        ["git", "config", "--local", "user.name", "HKML-X updater"],
         ["git", "add", "."],
         ["git", "commit", "-sm", "update", "-q"],
         ["git", "remote", "add", "origin", upstream_repo],
@@ -186,9 +193,11 @@ def main():
     if not bot_token:
         _LOGGER.error("BOT_TOKEN variable is missing! Exiting now")
         exit(1)
-    _fetch_config_from_db(config_file, _db_partition_id(bot_token.split(":", 1)[0]))
+    _fetch_config_from_db(
+        config_file, (_db_partition_id(bot_token.split(":", 1)[0]),)
+    )
     upstream_repo = config_file.get("UPSTREAM_REPO", "").strip()
-    upstream_branch = config_file.get("UPSTREAM_BRANCH", "").strip() or "wzv3"
+    upstream_branch = config_file.get("UPSTREAM_BRANCH", "").strip() or "beta"
     _run_update(upstream_repo, upstream_branch, version)
     _cleanup()
     _update_packages()

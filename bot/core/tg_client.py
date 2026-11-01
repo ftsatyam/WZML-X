@@ -1,29 +1,33 @@
 from ast import literal_eval
-from pyrogram import Client, enums
-from pyrogram.errors import FloodWait
 from asyncio import Lock, gather, get_running_loop, shield, sleep
 from contextlib import asynccontextmanager
 from hashlib import sha256
 from inspect import signature
 from time import monotonic
 
+from pyrogram import Client, enums
+from pyrogram.errors import FloodWait
+
 from .. import LOGGER, bot_loop
 from ..helper.ext_utils.exceptions import TgLinkException
 from .config_manager import Config
 
-_DB_PARTITION_SALT = b"wzmlx_v3_db_partition_salt"
+_DB_PARTITION_SALT = b"hkmlx_v3_db_partition_salt"
+
+
+def _partition_id(bot_id, salt):
+    raw = sha256(salt + str(bot_id).encode("utf-8")).hexdigest()
+    return f"p_{raw[:24]}"
 
 
 def db_partition_id(bot_id):
-    raw = sha256(_DB_PARTITION_SALT + str(bot_id).encode("utf-8")).hexdigest()
-    return f"p_{raw[:24]}"
+    return _partition_id(bot_id, _DB_PARTITION_SALT)
 
 
 class TgClient:
     _lock = Lock()
     _hlock = Lock()
     _ulock = Lock()
-    _slock = Lock()
 
     bot = None
     user = None
@@ -31,8 +35,6 @@ class TgClient:
     helper_loads = {}
     helper_users = {}
     helper_user_loads = {}
-    stream_bots = {}
-    stream_loads = {}
 
     BNAME = ""
     ID = 0
@@ -41,7 +43,7 @@ class TgClient:
     MAX_SPLIT_SIZE = 2097152000
 
     @classmethod
-    def wztgClient(cls, *args, proxy=None, **kwargs):
+    def hkmltgClient(cls, *args, proxy=None, **kwargs):
         kwargs["api_id"] = Config.TELEGRAM_API
         kwargs["api_hash"] = Config.TELEGRAM_HASH
         kwargs["proxy"] = (Config.TG_PROXY if proxy is None else proxy) or None
@@ -76,8 +78,8 @@ class TgClient:
     async def _retry_hclient(cls, no, b_token, delay, proxy=None):
         await sleep(delay)
         try:
-            hbot = cls.wztgClient(
-                f"WZ-HBot{no}",
+            hbot = cls.hkmltgClient(
+                f"HKML-X-HBot{no}",
                 bot_token=b_token,
                 no_updates=True,
                 proxy=proxy,
@@ -94,8 +96,8 @@ class TgClient:
     @classmethod
     async def start_hclient(cls, no, b_token, proxy=None):
         try:
-            hbot = cls.wztgClient(
-                f"WZ-HBot{no}",
+            hbot = cls.hkmltgClient(
+                f"HKML-X-HBot{no}",
                 bot_token=b_token,
                 no_updates=True,
                 proxy=proxy,
@@ -133,66 +135,11 @@ class TgClient:
             )
 
     @classmethod
-    async def _retry_sclient(cls, no, b_token, delay, proxy=None):
-        await sleep(delay)
-        try:
-            sbot = cls.wztgClient(
-                f"WZ-SBot{no}",
-                bot_token=b_token,
-                no_updates=True,
-                proxy=proxy,
-            )
-            await sbot.start()
-            LOGGER.info(f"Stream Bot [@{sbot.me.username}] Started!")
-            cls.stream_bots[no], cls.stream_loads[no] = sbot, 0
-        except FloodWait as e:
-            LOGGER.warning(f"Stream Bot{no} FloodWait: Retrying in {e.value}s...")
-            bot_loop.create_task(cls._retry_sclient(no, b_token, e.value, proxy))
-        except Exception as e:
-            LOGGER.error(f"Failed to start stream bot {no} from STREAM_TOKENS. {e}")
-
-    @classmethod
-    async def start_sclient(cls, no, b_token, proxy=None):
-        try:
-            sbot = cls.wztgClient(
-                f"WZ-SBot{no}",
-                bot_token=b_token,
-                no_updates=True,
-                proxy=proxy,
-            )
-            await sbot.start()
-            LOGGER.info(f"Stream Bot [@{sbot.me.username}] Started!")
-            cls.stream_bots[no], cls.stream_loads[no] = sbot, 0
-        except FloodWait as e:
-            LOGGER.warning(
-                f"Stream Bot{no} FloodWait: Retrying in {e.value}s (non-blocking)..."
-            )
-            bot_loop.create_task(cls._retry_sclient(no, b_token, e.value, proxy))
-        except Exception as e:
-            LOGGER.error(f"Failed to start stream bot {no} from STREAM_TOKENS. {e}")
-            cls.stream_bots.pop(no, None)
-
-    @classmethod
-    async def start_stream_bots(cls):
-        if not Config.STREAM_TOKENS:
-            return
-        LOGGER.info("Generating stream client from STREAM_TOKENS")
-        async with cls._slock:
-            await gather(
-                *(
-                    cls.start_sclient(no, b_token)
-                    for no, b_token in enumerate(
-                        Config.STREAM_TOKENS.split(), start=1
-                    )
-                )
-            )
-
-    @classmethod
     async def _retry_huser(cls, no, session_string, delay, proxy=None):
         await sleep(delay)
         try:
-            huser = cls.wztgClient(
-                f"WZ-HUser{no}",
+            huser = cls.hkmltgClient(
+                f"HKML-X-HUser{no}",
                 session_string=session_string,
                 sleep_threshold=60,
                 no_updates=True,
@@ -211,8 +158,8 @@ class TgClient:
     @classmethod
     async def start_huser(cls, no, session_string, proxy=None):
         try:
-            huser = cls.wztgClient(
-                f"WZ-HUser{no}",
+            huser = cls.hkmltgClient(
+                f"HKML-X-HUser{no}",
                 session_string=session_string,
                 sleep_threshold=60,
                 no_updates=True,
@@ -258,8 +205,8 @@ class TgClient:
         LOGGER.info("Generating client from BOT_TOKEN")
         cls.ID = Config.BOT_TOKEN.split(":", 1)[0]
         cls.PARTITION = db_partition_id(cls.ID)
-        cls.bot = cls.wztgClient(
-            f"WZ-Bot{cls.ID}",
+        cls.bot = cls.hkmltgClient(
+            f"HKML-X-Bot{cls.ID}",
             bot_token=Config.BOT_TOKEN,
             workdir="/usr/src/app",
         )
@@ -272,14 +219,14 @@ class TgClient:
                 await sleep(e.value)
         cls.BNAME = cls.bot.me.username
         cls.ID = Config.BOT_TOKEN.split(":", 1)[0]
-        LOGGER.info(f"WZ Bot : [@{cls.BNAME}] Started!")
+        LOGGER.info(f"HKML-X : [@{cls.BNAME}] Started!")
 
     @classmethod
     async def _retry_user(cls, delay):
         await sleep(delay)
         try:
-            cls.user = cls.wztgClient(
-                "WZ-User",
+            cls.user = cls.hkmltgClient(
+                "HKML-X-User",
                 session_string=Config.USER_SESSION_STRING,
                 sleep_threshold=60,
                 no_updates=True,
@@ -289,7 +236,7 @@ class TgClient:
             if cls.IS_PREMIUM_USER:
                 cls.MAX_SPLIT_SIZE = 4194304000
             uname = cls.user.me.username or cls.user.me.first_name
-            LOGGER.info(f"WZ User : [{uname}] Started!")
+            LOGGER.info(f"HKML-X user : [{uname}] started!")
         except FloodWait as e:
             LOGGER.warning(f"User client FloodWait: Retrying in {e.value}s...")
             bot_loop.create_task(cls._retry_user(e.value))
@@ -304,8 +251,8 @@ class TgClient:
         if Config.USER_SESSION_STRING:
             LOGGER.info("Generating client from USER_SESSION_STRING")
             try:
-                cls.user = cls.wztgClient(
-                    "WZ-User",
+                cls.user = cls.hkmltgClient(
+                    "HKML-X-User",
                     session_string=Config.USER_SESSION_STRING,
                     sleep_threshold=60,
                     no_updates=True,
@@ -315,7 +262,7 @@ class TgClient:
                 if cls.IS_PREMIUM_USER:
                     cls.MAX_SPLIT_SIZE = 4194304000
                 uname = cls.user.me.username or cls.user.me.first_name
-                LOGGER.info(f"WZ User : [{uname}] Started!")
+                LOGGER.info(f"HKML-X user : [{uname}] started!")
             except FloodWait as e:
                 LOGGER.warning(
                     f"User client FloodWait: Retrying in {e.value}s (non-blocking)..."
@@ -343,9 +290,6 @@ class TgClient:
             if cls.helper_users:
                 clients.extend(h_user.stop() for h_user in cls.helper_users.values())
                 cls.helper_users = {}
-            if cls.stream_bots:
-                clients.extend(s_bot.stop() for s_bot in cls.stream_bots.values())
-                cls.stream_bots = {}
             if clients:
                 await gather(*clients, return_exceptions=True)
             await UserSessionPool.stop_all()
@@ -363,14 +307,12 @@ class TgClient:
                 await gather(
                     *[h_user.restart() for h_user in cls.helper_users.values()]
                 )
-            if cls.stream_bots:
-                await gather(*[s_bot.restart() for s_bot in cls.stream_bots.values()])
             await UserSessionPool.stop_all()
             LOGGER.info("All Client(s) restarted")
 
 
 class SessionLease:
-    __slots__ = ("client", "refs", "touched", "closing")
+    __slots__ = ("client", "closing", "refs", "touched")
 
     def __init__(self, client):
         self.client = client
@@ -403,8 +345,8 @@ class UserSessionPool:
 
     @classmethod
     async def _build(cls, user_id, session_string):
-        client = TgClient.wztgClient(
-            f"WZ-USess{user_id}",
+        client = TgClient.hkmltgClient(
+            f"HKML-X-USess{user_id}",
             session_string=session_string,
             no_updates=True,
             sleep_threshold=60,

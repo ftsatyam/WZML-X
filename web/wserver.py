@@ -1,4 +1,3 @@
-# ruff: noqa: E402
 try:
     from uvloop import install
 
@@ -13,30 +12,28 @@ bot_loop = new_event_loop()
 set_event_loop(bot_loop)
 
 from asyncio import sleep
+from contextlib import asynccontextmanager
+from html import escape
 from importlib import import_module
+from logging import INFO, WARNING, FileHandler, StreamHandler, basicConfig, getLogger
 from os import environ
 from re import compile as re_compile
-from html import escape
-from urllib.parse import quote, urlparse
-from contextlib import asynccontextmanager
-from logging import INFO, WARNING, FileHandler, StreamHandler, basicConfig, getLogger
+from urllib.parse import urlparse
 
 from aioaria2 import Aria2HttpClient
+from aiohttp import ClientSession, ClientTimeout
 from aiohttp.client_exceptions import ClientError
 from aioqbt.client import create_client
-from fastapi import FastAPI, Request, HTTPException
+from aioqbt.exc import AQError
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import (
     HTMLResponse,
     JSONResponse,
     Response,
-    StreamingResponse,
 )
 from fastapi.templating import Jinja2Templates
-from sabnzbdapi import SabnzbdClient
-from aioqbt.exc import AQError
 
 from web.nodes import extract_file_ids, make_tree
-from aiohttp import ClientSession, ClientTimeout
 
 getLogger("niquests").setLevel(WARNING)
 getLogger("aiohttp").setLevel(WARNING)
@@ -55,8 +52,8 @@ LOGGER = getLogger(__name__)
 _SAFE_PATH = re_compile(r"^[A-Za-z0-9_./-]+$")
 _SAFE_GID = re_compile(r"^[A-Za-z0-9_-]{1,64}$")
 _SAFE_PIN = re_compile(r"^\d{4}$")
-_SERVICE_PWD_SALT = b"wzmlx_v3_service_pwd_salt"
-_PIN_SALT = b"wzmlx_v3_pin_salt"
+_HKML_SERVICE_PWD_SALT = b"wzmlx_v3_service_pwd_salt"
+_HKML_PIN_SALT = b"wzmlx_v3_pin_salt"
 _PIN_LEN = 4
 _PIN_RATE_LIMIT = 5
 _PIN_RATE_WINDOW = 60
@@ -106,8 +103,8 @@ def _service_pwd(service):
         secret = _ACCESS_PASSWORD.encode("utf-8")
     else:
         secret = _ACCESS_PASSWORD
-    msg = f"{_BOT_ID}:{service}".encode("utf-8")
-    digest = hmac_new(_SERVICE_PWD_SALT, msg, sha256)
+    msg = f"{_BOT_ID}:{service}".encode()
+    digest = hmac_new(_HKML_SERVICE_PWD_SALT, msg, sha256)
     digest.update(secret)
     raw = digest.hexdigest()
     return raw[:20] + raw[-4:]
@@ -118,8 +115,8 @@ def _derive_pin(gid):
     from hmac import new as hmac_new
 
     sig = hmac_new(
-        _PIN_SALT,
-        f"{gid}|{_BOT_ID}".encode("utf-8"),
+        _HKML_PIN_SALT,
+        f"{gid}|{_BOT_ID}".encode(),
         sha256,
     ).hexdigest()
     digits = "".join(c for c in sig if c.isdigit())[:_PIN_LEN]
@@ -166,28 +163,16 @@ def _verify_pin(gid, pin):
     if not expected:
         return False
     return (
-        hmac_new(_PIN_SALT, expected.encode(), sha256).hexdigest()
-        == hmac_new(_PIN_SALT, pin.encode(), sha256).hexdigest()
+        hmac_new(_HKML_PIN_SALT, expected.encode(), sha256).hexdigest()
+        == hmac_new(_HKML_PIN_SALT, pin.encode(), sha256).hexdigest()
     )
 
 
 aria2 = None
 qbittorrent = None
-sabnzbd_client = SabnzbdClient(
-    host="http://localhost",
-    api_key=_service_pwd("sabnzbd"),
-    port="8070",
-)
 SERVICES = {
-    "nzb": {"url": "http://localhost:8070/", "password": _service_pwd("sabnzbd")},
     "qbit": {"url": "http://localhost:8090", "password": _service_pwd("qbit")},
 }
-
-
-STREAM_PORT = environ.get("STREAM_PORT", "") or "8091"
-STREAM_BASE = f"http://127.0.0.1:{STREAM_PORT}"
-_SAFE_TOKEN = re_compile(r"^[A-Za-z0-9_-]{4,32}$")
-_POSTER_CAP = 8 * 1024 * 1024
 http_session = None
 
 
@@ -198,9 +183,7 @@ async def lifespan(app: FastAPI):
     qbittorrent = await create_client("http://localhost:8090/api/v2/")
     http_session = ClientSession(
         auto_decompress=True,
-        timeout=ClientTimeout(
-            total=None, connect=15, sock_connect=15, sock_read=300
-        ),
+        timeout=ClientTimeout(total=None, connect=15, sock_connect=15, sock_read=300),
     )
     yield
     await aria2.close()
@@ -212,33 +195,6 @@ app = FastAPI(lifespan=lifespan)
 
 
 templates = Jinja2Templates(directory="web/templates/")
-
-
-_page_tags = {}
-
-
-def _page_tag(name, body):
-    from hashlib import md5
-
-    known = _page_tags.get(name)
-    if known is None or known[0] != len(body):
-        known = (len(body), '"%s"' % md5(body).hexdigest()[:16])
-        _page_tags[name] = known
-    return known[1]
-
-
-def _static_page(request: Request, name: str):
-    tag = _page_tag(name, templates.get_template(name).render().encode("utf-8"))
-    shelf = {
-        "ETag": tag,
-        "Cache-Control": "no-cache, must-revalidate",
-        "Referrer-Policy": "no-referrer",
-    }
-    if request.headers.get("if-none-match") == tag:
-        return Response(status_code=304, headers=shelf)
-    response = templates.TemplateResponse(request, name)
-    response.headers.update(shelf)
-    return response
 
 
 def _client_ip(request: Request):
@@ -382,9 +338,7 @@ async def handle_torrent(request: Request):
                 }
         else:
             selected_files, unselected_files = extract_file_ids(data)
-            if gid.startswith("SABnzbd_nzo"):
-                await set_sabnzbd(gid, unselected_files)
-            elif len(gid) > 20:
+            if len(gid) > 20:
                 await set_qbittorrent(gid, selected_files, unselected_files)
             else:
                 selected_files = ",".join(selected_files)
@@ -397,10 +351,7 @@ async def handle_torrent(request: Request):
             }
     else:
         try:
-            if gid.startswith("SABnzbd_nzo"):
-                res = await sabnzbd_client.get_files(gid)
-                content = make_tree(res, "sabnzbd")
-            elif len(gid) > 20:
+            if len(gid) > 20:
                 res = await qbittorrent.torrents.files(gid)
                 content = make_tree(res, "qbittorrent")
             else:
@@ -429,11 +380,6 @@ async def handle_rename(gid, data):
             await qbittorrent.torrents.rename_folder(hash=gid, **data)
     except (ClientError, TimeoutError, Exception, AQError) as e:
         LOGGER.error(f"{e} Errored in renaming")
-
-
-async def set_sabnzbd(gid, unselected_files):
-    await sabnzbd_client.remove_file(gid, unselected_files)
-    LOGGER.info(f"Verified! nzo_id: {gid}")
 
 
 async def set_qbittorrent(gid, selected_files, unselected_files):
@@ -559,316 +505,15 @@ async def protected_proxy(
     return response
 
 
-@app.api_route("/nzb/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
-async def sabnzbd_proxy(path: str = "", request: Request = None):
-    return await protected_proxy("nzb", path, request)
-
-
 @app.api_route("/qbit/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 async def qbittorrent_proxy(path: str = "", request: Request = None):
     return await protected_proxy("qbit", path, request)
 
 
-_HOP = (
-    "connection",
-    "keep-alive",
-    "proxy-authenticate",
-    "proxy-authorization",
-    "te",
-    "trailers",
-    "transfer-encoding",
-    "upgrade",
-    "content-encoding",
-)
-
-
-def _stream_offline():
-    return HTTPException(
-        status_code=503,
-        detail="Streaming is disabled or the stream service is not running.",
-    )
-
-
-async def stream_proxy(
-    token: str, request: Request, upstream_path: str, params: dict = None
-):
-    if not _SAFE_TOKEN.match(token or ""):
-        raise HTTPException(status_code=404, detail="Unknown link")
-    headers = {}
-    rng = request.headers.get("range")
-    if rng:
-        headers["Range"] = rng
-    if ifr := request.headers.get("if-range"):
-        headers["If-Range"] = ifr
-    if inm := request.headers.get("if-none-match"):
-        headers["If-None-Match"] = inm
-    headers["X-Viewer"] = _client_ip(request)
-
-    try:
-        upstream = await http_session.request(
-            request.method,
-            f"{STREAM_BASE}{upstream_path}/{token}",
-            headers=headers,
-            params=params or None,
-            allow_redirects=False,
-        )
-    except (ClientError, TimeoutError) as e:
-        raise _stream_offline() from e
-
-    out = {
-        k: v for k, v in upstream.headers.items() if k.lower() not in _HOP
-    }
-    out.setdefault("Accept-Ranges", "bytes")
-    out.setdefault("Cache-Control", "private, max-age=86400, immutable")
-    out["Referrer-Policy"] = "no-referrer"
-    out["X-Content-Type-Options"] = "nosniff"
-
-    if request.method == "HEAD" or upstream.status in (204, 304, 416):
-        body = await upstream.read()
-        upstream.release()
-        return Response(
-            content=body if request.method != "HEAD" else b"",
-            status_code=upstream.status,
-            headers=out,
-        )
-
-    async def _pump():
-        try:
-            async for chunk in upstream.content.iter_any():
-                yield chunk
-        finally:
-            upstream.release()
-
-    return StreamingResponse(_pump(), status_code=upstream.status, headers=out)
-
-
-@app.api_route("/stream/{token}", methods=["GET", "HEAD"])
-async def stream_route(token: str, request: Request):
-    return await stream_proxy(token, request, "/_stream")
-
-
-@app.api_route("/dl/{token}", methods=["GET", "HEAD"])
-async def download_route(token: str, request: Request):
-    return await stream_proxy(token, request, "/_dl")
-
-
-@app.get("/playlist/{token}", response_class=HTMLResponse)
-async def playlist_page(token: str, request: Request):
-    if not _SAFE_TOKEN.match(token or ""):
-        raise HTTPException(status_code=404, detail="Unknown link")
-    return _static_page(request, "playlist.html")
-
-
-async def _json_proxy(token: str, upstream_path: str):
-    if not _SAFE_TOKEN.match(token or ""):
-        raise HTTPException(status_code=404, detail="Unknown link")
-    try:
-        async with http_session.get(f"{STREAM_BASE}{upstream_path}/{token}") as up:
-            body = await up.read()
-            cache = up.headers.get("Cache-Control", "no-store")
-            tag = up.headers.get("ETag")
-            status = up.status
-    except (ClientError, TimeoutError) as e:
-        raise _stream_offline() from e
-    headers = {"Cache-Control": cache, "Referrer-Policy": "no-referrer"}
-    if tag:
-        headers["ETag"] = tag
-    return Response(
-        content=body,
-        status_code=status,
-        media_type="application/json",
-        headers=headers,
-    )
-
-
-@app.get("/api/playlist/{token}")
-async def playlist_api(token: str, request: Request):
-    return await _json_proxy(token, "/_playlist")
-
-
-@app.get("/api/merge/{token}")
-async def merge_api(token: str, request: Request):
-    return await _json_proxy(token, "/_merge")
-
-
-@app.get("/poster/{token}")
-async def poster_route(token: str, request: Request):
-    if not _SAFE_TOKEN.match(token or ""):
-        raise HTTPException(status_code=404, detail="Unknown link")
-    forward = {}
-    if tag := request.headers.get("if-none-match"):
-        forward["If-None-Match"] = tag
-    try:
-        async with http_session.get(
-            f"{STREAM_BASE}/_poster/{token}", headers=forward
-        ) as upstream:
-            status = upstream.status
-            body = b""
-            if status != 304:
-                chunks = []
-                seen = 0
-                async for piece in upstream.content.iter_chunked(65536):
-                    seen += len(piece)
-                    if seen > _POSTER_CAP:
-                        chunks = []
-                        break
-                    chunks.append(piece)
-                body = b"".join(chunks)
-            out = {
-                "Cache-Control": upstream.headers.get(
-                    "Cache-Control", "private, max-age=86400"
-                ),
-                "Referrer-Policy": "no-referrer",
-            }
-            if etag := upstream.headers.get("ETag"):
-                out["ETag"] = etag
-            ctype = upstream.headers.get("Content-Type", "image/jpeg")
-    except (ClientError, TimeoutError) as e:
-        raise _stream_offline() from e
-    if status not in (200, 304):
-        raise HTTPException(status_code=404, detail="No artwork")
-    if status == 304:
-        return Response(status_code=304, headers=out)
-    if not body:
-        raise HTTPException(status_code=404, detail="No artwork")
-    return Response(content=body, media_type=ctype, headers=out)
-
-
-@app.get("/xstrm/{token}", response_class=HTMLResponse)
-async def xstrm_page(token: str, request: Request):
-    if not _SAFE_TOKEN.match(token or ""):
-        raise HTTPException(status_code=404, detail="Unknown link")
-    return _static_page(request, "stream.html")
-
-
-@app.get("/subs/{token}/{track}")
-async def subs_route(token: str, track: str, request: Request):
-    if not _SAFE_TOKEN.match(token or ""):
-        raise HTTPException(status_code=404, detail="Unknown link")
-    idx = track[:-4] if track.endswith(".vtt") else track
-    if not idx.isdigit() or len(idx) > 2:
-        raise HTTPException(status_code=404, detail="Unknown track")
-
-    forward = {}
-    if tag := request.headers.get("if-none-match"):
-        forward["If-None-Match"] = tag
-
-    try:
-        upstream = await http_session.get(
-            f"{STREAM_BASE}/_subs/{token}/{idx}", headers=forward
-        )
-    except (ClientError, TimeoutError) as e:
-        raise _stream_offline() from e
-    if upstream.status not in (200, 304):
-        upstream.release()
-        raise HTTPException(status_code=upstream.status, detail="Track unavailable")
-
-    passed = {"Referrer-Policy": "no-referrer"}
-    for name in ("Cache-Control", "ETag"):
-        if value := upstream.headers.get(name):
-            passed[name] = value
-
-    if upstream.status == 304:
-        upstream.release()
-        return Response(status_code=304, headers=passed)
-
-    async def _pump():
-        try:
-            async for chunk in upstream.content.iter_any():
-                yield chunk
-        finally:
-            upstream.release()
-
-    return StreamingResponse(
-        _pump(),
-        status_code=200,
-        media_type="text/vtt; charset=utf-8",
-        headers=passed,
-    )
-
-
-@app.get("/api/tracks/{token}")
-async def tracks_route(token: str, request: Request):
-    return await _json_proxy(token, "/_tracks")
-
-
-def _one_line(text):
-    return "".join(" " if ord(c) < 32 or ord(c) == 127 else c for c in text)
-
-
-@app.get("/m3u/{token}")
-async def m3u_route(token: str, request: Request):
-    if not _SAFE_TOKEN.match(token or ""):
-        raise HTTPException(status_code=404, detail="Unknown link")
-    listing = None
-    for path in ("/_merge", "/_playlist"):
-        try:
-            async with http_session.get(f"{STREAM_BASE}{path}/{token}") as upstream:
-                if upstream.status != 200:
-                    continue
-                listing = await upstream.json(content_type=None)
-        except (ClientError, TimeoutError) as e:
-            raise _stream_offline() from e
-        except ValueError:
-            continue
-        if listing:
-            break
-    if not listing:
-        raise HTTPException(status_code=404, detail="Unknown link")
-
-    base = str(request.base_url).rstrip("/")
-    entries = listing.get("parts") or listing.get("items") or []
-    lines = ["#EXTM3U"]
-    for one in entries:
-        if not one.get("token"):
-            continue
-        if "playable" in one and not one["playable"]:
-            continue
-        secs = int(one.get("span") or one.get("dur") or 0) or -1
-        name = _one_line(one.get("name") or "Part")
-        lines.append(f"#EXTINF:{secs},{name}")
-        lines.append(f"{base}/stream/{one['token']}")
-    if len(lines) < 3:
-        raise HTTPException(status_code=404, detail="Nothing playable")
-
-    title = _one_line(listing.get("name") or token).replace('"', "")
-    return Response(
-        content="\n".join(lines) + "\n",
-        media_type="application/x-mpegurl",
-        headers={
-            "Cache-Control": "private, max-age=300",
-            "Referrer-Policy": "no-referrer",
-            "Content-Disposition": (
-                "inline; filename*=UTF-8''%s.m3u" % quote(title, safe="")
-            ),
-        },
-    )
-
-
-@app.get("/api/stream/{token}")
-async def stream_meta(token: str, request: Request):
-    if not _SAFE_TOKEN.match(token or ""):
-        raise HTTPException(status_code=404, detail="Unknown link")
-    try:
-        async with http_session.get(f"{STREAM_BASE}/_meta/{token}") as upstream:
-            body = await upstream.read()
-            status = upstream.status
-    except (ClientError, TimeoutError) as e:
-        raise _stream_offline() from e
-    return Response(
-        content=body,
-        status_code=status,
-        media_type="application/json",
-        headers={"Cache-Control": "no-store"},
-    )
-
-
 @app.exception_handler(HTTPException)
 async def http_error(request: Request, exc: HTTPException):
-    if request.url.path.startswith(("/app/files/", "/api/", "/stream/", "/dl/")):
-        return JSONResponse(
-            {"error": str(exc.detail)}, status_code=exc.status_code
-        )
+    if request.url.path.startswith(("/app/files/", "/api/")):
+        return JSONResponse({"error": str(exc.detail)}, status_code=exc.status_code)
     return HTMLResponse(
         f"<h1>{exc.status_code}: {escape(str(exc.detail))}</h1>",
         status_code=exc.status_code,
@@ -878,6 +523,6 @@ async def http_error(request: Request, exc: HTTPException):
 @app.exception_handler(Exception)
 async def server_error(request: Request, exc: Exception):
     LOGGER.error(f"Unhandled error on {request.url.path}: {exc}")
-    if request.url.path.startswith(("/app/files/", "/api/", "/stream/", "/dl/")):
+    if request.url.path.startswith(("/app/files/", "/api/")):
         return JSONResponse({"error": "Internal server error"}, status_code=500)
     return HTMLResponse("<h1>500: Internal server error</h1>", status_code=500)

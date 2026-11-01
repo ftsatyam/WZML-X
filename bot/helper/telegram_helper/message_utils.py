@@ -1,29 +1,30 @@
-from asyncio import sleep, gather
+from asyncio import gather, sleep
 from random import choice
-from re import compile as re_compile, match as re_match
+from re import compile as re_compile
+from re import match as re_match
 from time import time
 
-from pyrogram.types import (
-    Message,
-    InputMediaPhoto,
-    LinkPreviewOptions,
-    ReplyParameters,
-)
 from pyrogram.enums import ButtonStyle, ParseMode
 from pyrogram.errors import (
+    EntityBoundsInvalid,
     FloodWait,
-    MessageNotModified,
-    MessageEmpty,
-    MessageTooLong,
+    MediaCaptionTooLong,
+    MediaEmpty,
     MessageDeleteForbidden,
-    ReplyMarkupInvalid,
+    MessageEmpty,
+    MessageNotModified,
+    MessageTooLong,
+    PeerIdInvalid,
     PhotoInvalidDimensions,
+    ReplyMarkupInvalid,
     WebpageCurlFailed,
     WebpageMediaEmpty,
-    MediaEmpty,
-    MediaCaptionTooLong,
-    EntityBoundsInvalid,
-    PeerIdInvalid,
+)
+from pyrogram.types import (
+    InputMediaPhoto,
+    LinkPreviewOptions,
+    Message,
+    ReplyParameters,
 )
 
 try:
@@ -405,7 +406,7 @@ _TG_PRIVATE = re_compile(
 
 
 class TgLink:
-    __slots__ = ("chat", "thread_id", "start_id", "end_id", "private")
+    __slots__ = ("chat", "end_id", "private", "start_id", "thread_id")
 
     def __init__(self, chat, thread_id, start_id, end_id, private):
         self.chat = chat

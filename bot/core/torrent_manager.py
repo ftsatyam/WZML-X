@@ -1,8 +1,8 @@
 from asyncio import TimeoutError, create_subprocess_exec, gather, sleep
 from contextlib import suppress
 from inspect import iscoroutinefunction
-from pathlib import Path
 from os import getcwd
+from pathlib import Path
 from time import time
 
 from aioaria2 import Aria2WebsocketClient
@@ -89,7 +89,7 @@ class TorrentManager:
                 return
 
             cls._qbit_process = await create_subprocess_exec(
-                BinConfig.QBIT_NAME, "-d", f"--profile={getcwd()}/configs/qbittorrent"
+                BinConfig.QBIT_NAME, "-d", f"--profile={getcwd()}"
             )
             await sleep(2)
             LOGGER.info("qBittorrent started !")
@@ -140,7 +140,7 @@ class TorrentManager:
                     pass
                 cls.qbittorrent = None
             cls._qbit_process = await create_subprocess_exec(
-                BinConfig.QBIT_NAME, "-d", f"--profile={getcwd()}/configs/qbittorrent"
+                BinConfig.QBIT_NAME, "-d", f"--profile={getcwd()}"
             )
             await sleep(3)
             cls.qbittorrent = await create_client("http://localhost:8090/api/v2/")

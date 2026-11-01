@@ -1,21 +1,18 @@
-from psutil import cpu_percent, virtual_memory, disk_usage
-from time import time
 from asyncio import gather, iscoroutinefunction
+from time import time
 
+from psutil import cpu_percent, disk_usage, virtual_memory
 from pyrogram.errors import QueryIdInvalid
 
 from .. import (
-    task_dict_lock,
-    status_dict,
-    task_dict,
+    DOWNLOAD_DIR,
     bot_start_time,
     intervals,
-    sabnzbd_client,
-    DOWNLOAD_DIR,
+    status_dict,
+    task_dict,
+    task_dict_lock,
 )
-from ..core.config_manager import Config
 from ..core.torrent_manager import TorrentManager
-from ..core.jdownloader_booter import jdownloader
 from ..helper.ext_utils.bot_utils import new_task
 from ..helper.ext_utils.status_utils import (
     EngineStatus,
@@ -25,15 +22,15 @@ from ..helper.ext_utils.status_utils import (
     speed_string_to_bytes,
 )
 from ..helper.telegram_helper.bot_commands import BotCommands
+from ..helper.telegram_helper.button_build import ButtonMaker
 from ..helper.telegram_helper.message_utils import (
-    send_message,
-    delete_message,
     auto_delete_message,
+    delete_message,
+    edit_message,
+    send_message,
     send_status_message,
     update_status_message,
-    edit_message,
 )
-from ..helper.telegram_helper.button_build import ButtonMaker
 
 
 @new_task
@@ -76,7 +73,7 @@ async def get_download_status(download):
     eng = download.engine
     speed = (
         download.speed()
-        if eng.startswith(("WzPyro", "yt-dlp", "RClone", "Google-API"))
+        if eng.startswith(("Telegram client", "yt-dlp", "RClone", "Google-API"))
         else 0
     )
     return (
@@ -145,25 +142,6 @@ async def status_pages(_, query):
             for _, __, eng in status_results
         ):
             dl_speed, seed_speed = await TorrentManager.overall_speed()
-
-        if any(eng == eng_status.STATUS_SABNZBD for _, __, eng in status_results):
-            if not Config.DISABLE_NZB and sabnzbd_client.LOGGED_IN:
-                dl_speed += (
-                    int(
-                        float(
-                            (await sabnzbd_client.get_downloads())["queue"].get(
-                                "kbpersec", "0"
-                            )
-                        )
-                    )
-                    * 1024
-                )
-
-        if any(eng == eng_status.STATUS_JD for _, __, eng in status_results):
-            if not Config.DISABLE_JD and jdownloader.is_connected:
-                dl_speed += (
-                    await jdownloader.device.downloadcontroller.get_speed_in_bytes()
-                )
 
         for status, speed, _ in status_results:
             match status:

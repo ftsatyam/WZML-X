@@ -1,43 +1,45 @@
-from json import loads as jloads, JSONDecodeError
-from niquests import AsyncSession
-from pyrogram.enums import ButtonStyle
-from apscheduler.triggers.interval import IntervalTrigger
 from asyncio import Lock, sleep
 from datetime import datetime, timedelta
-from feedparser import parse as feed_parse
 from functools import partial
 from io import BytesIO
+from json import JSONDecodeError
+from json import loads as jloads
+from re import IGNORECASE, compile
+from time import time
+
+from apscheduler.triggers.interval import IntervalTrigger
+from feedparser import parse as feed_parse
+from niquests import AsyncSession
+from pyrogram.enums import ButtonStyle
 from pyrogram.filters import create
 from pyrogram.handlers import MessageHandler
-from time import time
-from re import compile, I
 
-from .. import scheduler, rss_dict, LOGGER
+from .. import LOGGER, rss_dict, scheduler
 from ..core.config_manager import Config
 from ..core.tg_client import TgClient
 from ..helper.ext_utils.bot_utils import (
-    new_task,
     arg_parser,
     get_size_bytes,
+    new_task,
     resolve_command,
 )
-from ..helper.ext_utils.status_utils import get_readable_file_size
 from ..helper.ext_utils.db_handler import database
 from ..helper.ext_utils.exceptions import RssShutdownException
 from ..helper.ext_utils.help_messages import RSS_HELP_MESSAGE
+from ..helper.ext_utils.status_utils import get_readable_file_size
 from ..helper.telegram_helper.button_build import ButtonMaker
 from ..helper.telegram_helper.filters import CustomFilters
 from ..helper.telegram_helper.message_utils import (
-    send_message,
-    edit_message,
-    send_rss,
-    send_file,
     delete_message,
+    edit_message,
+    send_file,
+    send_message,
+    send_rss,
 )
 
 rss_dict_lock = Lock()
 handler_dict = {}
-size_regex = compile(r"(\d+(\.\d+)?\s?(GB|MB|KB|GiB|MiB|KiB))", I)
+size_regex = compile(r"(\d+(\.\d+)?\s?(GB|MB|KB|GiB|MiB|KiB))", IGNORECASE)
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36",

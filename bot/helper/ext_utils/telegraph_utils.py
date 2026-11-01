@@ -5,7 +5,6 @@ from re import compile as re_compile
 
 from niquests import AsyncSession
 
-
 _RE_WHITESPACE = re_compile(r"(\s+)")
 
 _ALLOWED_TAGS = {
@@ -253,5 +252,3 @@ class Telegraph:
             },
             path=path,
         )
-
-

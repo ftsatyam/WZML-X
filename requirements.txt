@@ -6,7 +6,6 @@ anytree
 apscheduler
 aioaria2
 aioqbt
-imdbio
 cloudscraper
 cryptography==46.0.7
 dnspython
@@ -29,7 +28,6 @@ pymongo
 wzgram
 python-magic
 pytz
-pyyaml
 qbittorrent-api
 niquests
 speedtest-cli

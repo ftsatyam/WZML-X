@@ -1,23 +1,25 @@
-from aiofiles.os import remove, path as aiopath
-from asyncio import sleep, TimeoutError
+from asyncio import TimeoutError, sleep
 from time import time
+
+from aiofiles.os import path as aiopath
+from aiofiles.os import remove
 from aiohttp.client_exceptions import ClientError
 from aioqbt.exc import AQError
 
 from ... import (
+    LOGGER,
+    intervals,
+    qb_listener_lock,
+    qb_torrents,
     task_dict,
     task_dict_lock,
-    intervals,
-    qb_torrents,
-    qb_listener_lock,
-    LOGGER,
 )
 from ...core.config_manager import Config
 from ...core.torrent_manager import TorrentManager
 from ..ext_utils.bot_utils import new_task
 from ..ext_utils.files_utils import clean_unwanted
 from ..ext_utils.status_utils import get_readable_time, get_task_by_gid
-from ..ext_utils.task_manager import stop_duplicate_check, limit_checker
+from ..ext_utils.task_manager import limit_checker, stop_duplicate_check
 from ..mirror_leech_utils.status_utils.qbit_status import QbittorrentStatus
 from ..telegram_helper.message_utils import update_status_message
 
@@ -173,8 +175,6 @@ async def _qb_listener():
                             msg += f"{tor_info.hash} Downloaded Bytes: {tor_info.downloaded} "
                             msg += f"Size: {tor_info.size} Total Size: {tor_info.total_size}"
                             LOGGER.warning(msg)
-                            # Automatic recheck disabled: disk verification is very slow
-                            # on high I/O load. Continue/reannounce instead.
                             await TorrentManager.qbittorrent.torrents.reannounce(
                                 [tor_info.hash]
                             )

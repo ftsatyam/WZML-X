@@ -1,5 +1,4 @@
 import os
-from itertools import cycle
 from asyncio import (
     FIRST_COMPLETED,
     CancelledError,
@@ -12,6 +11,7 @@ from asyncio import (
     wait,
 )
 from datetime import datetime
+from itertools import cycle
 from mimetypes import guess_extension
 from pathlib import Path
 from re import sub
@@ -30,17 +30,16 @@ from pyrogram.errors import (
     RequestTokenInvalid,
 )
 from pyrogram.file_id import PHOTO_TYPES, FileId, FileType
-from pyrogram.session import Auth
+from pyrogram.session import Auth, Session
 from pyrogram.session.internals import MsgId
-from pyrogram.session import Session
 
 from ... import LOGGER
 from ...core.config_manager import Config
 from ...core.cpu import allowed_cpus
-from .mem_guard import budget
 from ...core.tg_client import TgClient
 from ..telegram_helper.tg_transfer import MB, HypertgTransfer, media_of
 from .bot_utils import parse_dest
+from .mem_guard import budget
 
 _load_lock = Lock()
 

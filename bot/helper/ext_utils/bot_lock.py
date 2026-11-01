@@ -2,8 +2,6 @@ from asyncio import Lock, Semaphore
 from os import sched_getaffinity
 from pathlib import Path
 
-from ...core.config_manager import Config
-
 
 def _read_cgroup_file(path):
     try:
@@ -91,22 +89,11 @@ def get_system_resources_cached():
 
 
 class SmartLock:
-    def __init__(self, pause_targets=None, max_slots=None):
+    def __init__(self, max_slots=None):
         self._lock = Lock()
         self._semaphore = Semaphore(1)
-        self._pause_targets = pause_targets or []
         self._fixed_max = max_slots
         self._active = 0
-        self._throttled = False
-
-    @property
-    def throttled(self):
-        val = Config.THROTTLE_SERVICES
-        if val == "always":
-            return True
-        if val == "never":
-            return False
-        return get_system_resources_cached()["is_low_end"]
 
     def _get_max_slots(self):
         if self._fixed_max is not None:
@@ -128,25 +115,13 @@ class SmartLock:
         await self._semaphore.acquire()
         async with self._lock:
             self._active += 1
-            self._throttled = self.throttled
-            at_capacity = self._active >= self._get_max_slots()
-            if self._throttled and at_capacity and self._pause_targets:
-                await self._pause(self._pause_targets)
 
     async def release(self):
         async with self._lock:
             if self._active == 0:
                 return
-            should_resume = (
-                self._throttled
-                and self._active >= self._get_max_slots()
-                and self._pause_targets
-            )
-            if should_resume:
-                await self._resume(self._pause_targets)
             self._active = max(0, self._active - 1)
-            self._throttled = False
-        self._semaphore.release()
+            self._semaphore.release()
 
     async def __aenter__(self):
         await self.acquire()
@@ -156,39 +131,5 @@ class SmartLock:
         await self.release()
         return False
 
-    async def _pause(self, targets):
-        for t in targets:
-            try:
-                if t == "nzb" and not Config.DISABLE_NZB:
-                    from ... import sabnzbd_client
 
-                    if sabnzbd_client.LOGGED_IN:
-                        await sabnzbd_client.pause_all()
-                elif t == "jd" and not Config.DISABLE_JD:
-                    from ...core.jdownloader_booter import jdownloader
-
-                    if jdownloader.is_connected:
-                        await jdownloader.device.downloadcontroller.stop_downloads()
-            except (ConnectionError, TimeoutError, OSError):
-                pass
-
-    async def _resume(self, targets):
-        for t in targets:
-            try:
-                if t == "nzb" and not Config.DISABLE_NZB:
-                    from ... import sabnzbd_client
-
-                    if sabnzbd_client.LOGGED_IN:
-                        await sabnzbd_client.resume_all()
-                elif t == "jd" and not Config.DISABLE_JD:
-                    from ...core.jdownloader_booter import jdownloader
-
-                    if jdownloader.is_connected:
-                        await jdownloader.device.downloadcontroller.start_downloads()
-            except (ConnectionError, TimeoutError, OSError):
-                pass
-
-
-ff_lock = SmartLock(pause_targets=["nzb", "jd"], max_slots=1)
-sab_par2_lock = SmartLock(pause_targets=["jd"])
-jd_heavy_lock = SmartLock(pause_targets=["nzb"])
+ff_lock = SmartLock(max_slots=1)

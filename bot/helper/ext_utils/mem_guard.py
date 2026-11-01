@@ -1,6 +1,4 @@
 import gc
-import linecache
-import tracemalloc
 from asyncio import Condition, sleep
 from time import time
 
@@ -20,15 +18,6 @@ def rss_bytes():
         from psutil import Process
 
         return Process().memory_info().rss
-    except Exception:
-        return 0
-
-
-def available_bytes():
-    try:
-        from psutil import virtual_memory
-
-        return virtual_memory().available
     except Exception:
         return 0
 
@@ -121,16 +110,6 @@ def register_cache(name, size_fn, trim_fn=None):
     _caches[name] = (size_fn, trim_fn)
 
 
-def cache_sizes():
-    out = {}
-    for name, (size_fn, _) in _caches.items():
-        try:
-            out[name] = int(size_fn() or 0)
-        except Exception:
-            out[name] = 0
-    return out
-
-
 def trim_caches(aggressive=False):
     freed = 0
     for name, (size_fn, trim_fn) in _caches.items():
@@ -143,61 +122,6 @@ def trim_caches(aggressive=False):
         except Exception as err:
             LOGGER.error(f"cache {name} trim failed: {err}")
     return freed
-
-
-class Profiler:
-    def __init__(self):
-        self.started_at = 0.0
-
-    @property
-    def running(self):
-        return tracemalloc.is_tracing()
-
-    def start(self, frames=12):
-        if self.running:
-            return False
-        tracemalloc.start(frames)
-        self.started_at = time()
-        LOGGER.info("memory profiler started")
-        return True
-
-    def stop(self):
-        if not self.running:
-            return False
-        tracemalloc.stop()
-        self.started_at = 0.0
-        LOGGER.info("memory profiler stopped")
-        return True
-
-    def top(self, count=12):
-        if not self.running:
-            return []
-        snapshot = tracemalloc.take_snapshot().filter_traces(
-            (
-                tracemalloc.Filter(False, tracemalloc.__file__),
-                tracemalloc.Filter(False, linecache.__file__),
-                tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),
-            )
-        )
-        rows = []
-        for stat in snapshot.statistics("lineno")[:count]:
-            frame = stat.traceback[0]
-            where = frame.filename
-            for marker in ("/bot/", "\\bot\\", "site-packages/", "site-packages\\"):
-                if marker in where:
-                    where = where.split(marker, 1)[1]
-                    break
-            rows.append(
-                {
-                    "where": f"{where}:{frame.lineno}",
-                    "size": stat.size,
-                    "count": stat.count,
-                }
-            )
-        return rows
-
-
-profiler = Profiler()
 
 
 class Monitor:
@@ -240,12 +164,6 @@ class Monitor:
                         f"trimmed {readable(freed)}, gc freed {collected} objects, "
                         f"now {readable(after)}"
                     )
-                    if profiler.running:
-                        for row in profiler.top(5):
-                            LOGGER.warning(
-                                f"  {row['where']} {readable(row['size'])} "
-                                f"in {row['count']} blocks"
-                            )
                 elif ratio >= 0.7:
                     trim_caches(aggressive=False)
             except Exception as err:
@@ -270,25 +188,3 @@ class Monitor:
 
 
 monitor = Monitor()
-
-
-def snapshot():
-    used = monitor.sample()
-    cap = limit_bytes()
-    caches = cache_sizes()
-    return {
-        "rss": used,
-        "limit": cap,
-        "available": available_bytes(),
-        "peak": monitor.peak,
-        "pressure": monitor.pressure(),
-        "budget": budget.stats(),
-        "caches": caches,
-        "cache_total": sum(caches.values()),
-        "gc": {
-            "objects": len(gc.get_objects()) if Config.MEM_DEEP_STATS else 0,
-            "counts": gc.get_count(),
-        },
-        "trims": monitor.trims,
-        "profiling": profiler.running,
-    }

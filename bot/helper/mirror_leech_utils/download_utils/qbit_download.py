@@ -1,15 +1,17 @@
-from aiofiles.os import remove, path as aiopath
+from asyncio import TimeoutError, sleep
+
 from aiofiles import open as aiopen
-from asyncio import sleep, TimeoutError
+from aiofiles.os import path as aiopath
+from aiofiles.os import remove
+from aiohttp.client_exceptions import ClientError
 from aioqbt.api import AddFormBuilder
 from aioqbt.exc import AQError
-from aiohttp.client_exceptions import ClientError
 
 from .... import (
-    task_dict,
-    task_dict_lock,
     LOGGER,
     qb_torrents,
+    task_dict,
+    task_dict_lock,
 )
 from ....core.config_manager import Config
 from ....core.torrent_manager import TorrentManager
@@ -18,17 +20,13 @@ from ...ext_utils.task_manager import check_running_tasks
 from ...listeners.qbit_listener import on_download_start
 from ...mirror_leech_utils.status_utils.qbit_status import QbittorrentStatus
 from ...telegram_helper.message_utils import (
-    send_message,
     delete_message,
+    send_message,
     send_status_message,
 )
 
 """
 Only v1 torrents
-#from hashlib import sha1
-#from base64 import b16encode, b32decode
-#from bencoding import bencode, bdecode
-#from re import search as re_search
 def _get_hash_magnet(mgt: str):
     hash_ = re_search(r'(?<=xt=urn:btih:)[a-zA-Z0-9]+', mgt).group(0)
     if len(hash_) == 32:

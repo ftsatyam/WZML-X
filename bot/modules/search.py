@@ -1,6 +1,7 @@
-from niquests import AsyncSession
 from html import escape
 from urllib.parse import quote
+
+from niquests import AsyncSession
 from pyrogram.enums import ButtonStyle
 
 from .. import LOGGER

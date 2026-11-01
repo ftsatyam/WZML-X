@@ -11,7 +11,8 @@ class PortalError(Exception):
 
 class SettingsPortal:
     VERSION = 1
-    KIND = "wzmlx-user-settings"
+    KIND = "hkmlx-user-settings"
+    LEGACY_KIND = "wzmlx-user-settings"
     MAX_BYTES = 512 * 1024
     FILE_BACKED = frozenset(
         ("THUMBNAIL", "RCLONE_CONFIG", "TOKEN_PICKLE", "USER_COOKIE_FILE")
@@ -59,7 +60,10 @@ class SettingsPortal:
             record = loads(raw)
         except Exception:
             raise PortalError("That file is not a settings export") from None
-        if not isinstance(record, dict) or record.get("kind") != cls.KIND:
+        if not isinstance(record, dict) or record.get("kind") not in (
+            cls.KIND,
+            cls.LEGACY_KIND,
+        ):
             raise PortalError("That file is not a settings export")
         if int(record.get("v") or 0) > cls.VERSION:
             raise PortalError("That export was made by a newer bot, update first")

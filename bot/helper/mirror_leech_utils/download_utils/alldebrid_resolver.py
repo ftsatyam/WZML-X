@@ -1,5 +1,6 @@
 from asyncio import Semaphore, gather, get_event_loop, sleep
-from re import I as re_I, match as re_match
+from re import IGNORECASE
+from re import match as re_match
 from urllib.parse import parse_qs, quote, urlparse
 
 from niquests import AsyncSession
@@ -10,7 +11,7 @@ from ...ext_utils.exceptions import DirectDownloadLinkException
 
 _API_BASE = "https://api.alldebrid.com/v4.1"
 _API_BASE_V4 = "https://api.alldebrid.com/v4"
-_AGENT = "wzmlx"
+_AGENT = "hkmlx"
 _TIMEOUT = 30
 _USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -171,7 +172,7 @@ def _extract_infohash(magnet):
     try:
         params = parse_qs(urlparse(magnet).query)
         for xt in params.get("xt", []):
-            if match := re_match(r"urn:btih:([A-Za-z0-9]+)", xt, flags=re_I):
+            if match := re_match(r"urn:btih:([A-Za-z0-9]+)", xt, flags=IGNORECASE):
                 return match[1].lower()
     except Exception:
         pass

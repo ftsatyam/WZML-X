@@ -1,7 +1,8 @@
-from time import sleep
-from niquests import get as rget
-from os import getenv
 from logging import error as logerror
+from os import getenv
+from time import sleep
+
+from niquests import get as rget
 
 BASE_URL = getenv("BASE_URL", None)
 try:

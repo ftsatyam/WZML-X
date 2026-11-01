@@ -1,20 +1,20 @@
 from html import escape
-from pyrogram.enums import ButtonStyle
+from re import match
 from time import monotonic, time
 from uuid import uuid4
-from re import match
 
 from aiofiles import open as aiopen
 from cloudscraper import create_scraper
+from pyrogram.enums import ButtonStyle
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from .. import LOGGER, user_data
 from ..core.config_manager import Config
 from ..core.tg_client import TgClient
 from ..helper.ext_utils.bot_utils import new_task, update_user_ldata
+from ..helper.ext_utils.db_handler import database
 from ..helper.ext_utils.links_utils import decode_slink
 from ..helper.ext_utils.status_utils import get_readable_time
-from ..helper.ext_utils.db_handler import database
 from ..helper.languages import Language
 from ..helper.telegram_helper.bot_commands import BotCommands
 from ..helper.telegram_helper.button_build import ButtonMaker
@@ -33,13 +33,13 @@ async def start(_, message):
     userid = message.from_user.id
     lang = Language()
     buttons = ButtonMaker()
+    buttons.url_button(lang.START_BUTTON1, "https://github.com/Imkrishana/HKML-X")
     buttons.url_button(
-        lang.START_BUTTON1, "https://www.github.com/SilentDemonSD/WZML-X"
+        lang.START_BUTTON2, "https://t.me/HKML_X"
     )
-    buttons.url_button(lang.START_BUTTON2, "https://t.me/WZML_X")
     reply_markup = buttons.build_menu(2)
 
-    if len(message.command) > 1 and message.command[1] == "wzmlx":
+    if len(message.command) > 1 and message.command[1] == "hkmlx":
         await delete_message(message)
     elif len(message.command) > 1 and message.command[1] != "start":
         decrypted_url = decode_slink(message.command[1])
@@ -101,7 +101,7 @@ async def start(_, message):
     else:
         await send_message(
             message,
-            "<i>Bot can mirror/leech from links|tgfiles|torrents|nzb|rclone-cloud to any rclone cloud, Google Drive or to telegram.\n\n⚠️ You are not an authorized user! Deploy your own WZML-X bot</i>",
+            "<i>Bot can mirror/leech from links|tgfiles|torrents|rclone-cloud to any rclone cloud, Google Drive or to telegram.\n\n⚠️ You are not an authorized user! Deploy your own HKML-X bot</i>",
             reply_markup,
             photo="IMAGES",
         )
@@ -218,7 +218,7 @@ async def log_cb(_, query):
             await send_message(message, text, btn.build_menu(1))
             await edit_reply_markup(message, None)
         except Exception as err:
-            LOGGER.error(f"TG Log Display : {str(err)}")
+            LOGGER.error(f"TG Log Display : {err!s}")
     elif data[2] == "web":
         boundary = "R1eFDeaC554BUkLF"
         headers = {

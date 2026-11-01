@@ -1,5 +1,3 @@
-# ruff: noqa: F403, F405
-
 from pyrogram.filters import command, regex
 from pyrogram.handlers import CallbackQueryHandler, EditedMessageHandler, MessageHandler
 from pyrogram.types import BotCommand
@@ -78,18 +76,6 @@ async def add_handlers():
     TgClient.bot.add_handler(
         CallbackQueryHandler(
             edit_bot_settings, filters=regex("^botset") & CustomFilters.sudo
-        )
-    )
-    TgClient.bot.add_handler(
-        MessageHandler(
-            memory_stats,
-            filters=command(BotCommands.MemoryCommand, case_sensitive=True)
-            & CustomFilters.sudo,
-        )
-    )
-    TgClient.bot.add_handler(
-        CallbackQueryHandler(
-            memory_callback, filters=regex("^mem") & CustomFilters.sudo
         )
     )
     TgClient.bot.add_handler(
@@ -198,20 +184,6 @@ async def add_handlers():
     )
     TgClient.bot.add_handler(
         MessageHandler(
-            jd_mirror,
-            filters=command(BotCommands.JdMirrorCommand, case_sensitive=True)
-            & CustomFilters.authorized,
-        )
-    )
-    TgClient.bot.add_handler(
-        MessageHandler(
-            nzb_mirror,
-            filters=command(BotCommands.NzbMirrorCommand, case_sensitive=True)
-            & CustomFilters.authorized,
-        )
-    )
-    TgClient.bot.add_handler(
-        MessageHandler(
             leech,
             filters=command(BotCommands.LeechCommand, case_sensitive=True)
             & CustomFilters.authorized,
@@ -221,20 +193,6 @@ async def add_handlers():
         MessageHandler(
             qb_leech,
             filters=command(BotCommands.QbLeechCommand, case_sensitive=True)
-            & CustomFilters.authorized,
-        )
-    )
-    TgClient.bot.add_handler(
-        MessageHandler(
-            jd_leech,
-            filters=command(BotCommands.JdLeechCommand, case_sensitive=True)
-            & CustomFilters.authorized,
-        )
-    )
-    TgClient.bot.add_handler(
-        MessageHandler(
-            nzb_leech,
-            filters=command(BotCommands.NzbLeechCommand, case_sensitive=True)
             & CustomFilters.authorized,
         )
     )
@@ -326,13 +284,6 @@ async def add_handlers():
     )
     TgClient.bot.add_handler(
         MessageHandler(
-            stream_links,
-            filters=command(BotCommands.StreamCommand, case_sensitive=True)
-            & CustomFilters.authorized,
-        )
-    )
-    TgClient.bot.add_handler(
-        MessageHandler(
             picture_add,
             filters=command(BotCommands.AddImageCommand, case_sensitive=True)
             & CustomFilters.authorized,
@@ -405,6 +356,13 @@ async def add_handlers():
     )
     TgClient.bot.add_handler(
         MessageHandler(
+            gen_pyro_string,
+            filters=command(BotCommands.ExportSessionCommand, case_sensitive=True)
+            & CustomFilters.sudo,
+        )
+    )
+    TgClient.bot.add_handler(
+        MessageHandler(
             ytdl,
             filters=command(BotCommands.YtdlCommand, case_sensitive=True)
             & CustomFilters.authorized,
@@ -414,6 +372,20 @@ async def add_handlers():
         MessageHandler(
             ytdl_leech,
             filters=command(BotCommands.YtdlLeechCommand, case_sensitive=True)
+            & CustomFilters.authorized,
+        )
+    )
+    TgClient.bot.add_handler(
+        MessageHandler(
+            mediainfo,
+            filters=command(BotCommands.MediaInfoCommand, case_sensitive=True)
+            & CustomFilters.authorized,
+        )
+    )
+    TgClient.bot.add_handler(
+        MessageHandler(
+            speedtest_command,
+            filters=command(BotCommands.SpeedtestCommand, case_sensitive=True)
             & CustomFilters.authorized,
         )
     )
@@ -446,34 +418,6 @@ async def add_handlers():
         def insert_at(d, k, v, i):
             return dict(list(d.items())[:i] + [(k, v)] + list(d.items())[i:])
 
-        if Config.JD_EMAIL and Config.JD_PASS:
-            BOT_COMMANDS = insert_at(
-                BOT_COMMANDS,
-                "JdMirror",
-                "[link/file] Mirror to Upload Destination using JDownloader",
-                2,
-            )
-            BOT_COMMANDS = insert_at(
-                BOT_COMMANDS,
-                "JdLeech",
-                "[link/file] Leech files to Upload to Telegram using JDownloader",
-                6,
-            )
-
-        if len(Config.USENET_SERVERS) != 0:
-            BOT_COMMANDS = insert_at(
-                BOT_COMMANDS,
-                "NzbMirror",
-                "[nzb] Mirror to Upload Destination using Sabnzbd",
-                2,
-            )
-            BOT_COMMANDS = insert_at(
-                BOT_COMMANDS,
-                "NzbLeech",
-                "[nzb] Leech files to Upload to Telegram using Sabnzbd",
-                6,
-            )
-
         if not Config.DISABLE_SEEDR:
             BOT_COMMANDS = insert_at(
                 BOT_COMMANDS,
@@ -482,25 +426,9 @@ async def add_handlers():
                 9,
             )
 
-        if not Config.DISABLE_STREAM:
-            BOT_COMMANDS = insert_at(
-                BOT_COMMANDS,
-                "Stream",
-                "[link/file] Stream or get playlist download links",
-                10,
-            )
-
         if Config.LOGIN_PASS:
             BOT_COMMANDS = insert_at(
                 BOT_COMMANDS, "Login", "[password] Login to Bot", 14
-            )
-
-        if not Config.DISABLE_PLUGINS:
-            BOT_COMMANDS = insert_at(
-                BOT_COMMANDS,
-                "Plugins",
-                "[SUDO] Manage user plugins",
-                len(BOT_COMMANDS),
             )
 
         await TgClient.bot.set_bot_commands(

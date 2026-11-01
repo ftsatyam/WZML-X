@@ -4,7 +4,6 @@ from logging import getLogger
 from os import path as ospath
 from os import remove
 
-from bot.core.config_manager import Config
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 from tenacity import (
@@ -15,6 +14,7 @@ from tenacity import (
     wait_exponential,
 )
 
+from bot.core.config_manager import Config
 from bot.helper.ext_utils.bot_utils import SetInterval, async_to_sync
 from bot.helper.ext_utils.files_utils import get_mime_type
 from bot.helper.mirror_leech_utils.youtube_utils.youtube_helper import YouTubeHelper

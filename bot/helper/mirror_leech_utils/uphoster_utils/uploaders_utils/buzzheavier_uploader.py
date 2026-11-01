@@ -104,16 +104,18 @@ class BuzzHeavierUpload(BaseUpload):
             if not parentFolderId:
                 raise Exception("Could not determine Root Directory ID.")
         url = f"{self.api_url}fs/{parentFolderId}"
-        async with ClientSession() as session:
-            async with session.post(
+        async with (
+            ClientSession() as session,
+            session.post(
                 url=url,
                 json={"name": folderName},
                 headers={"Authorization": f"Bearer {self.token}"},
-            ) as resp:
-                if resp.status in [200, 201]:
-                    return await resp.json()
-                else:
-                    raise Exception(f"Create Folder Failed: {await resp.text()}")
+            ) as resp,
+        ):
+            if resp.status in [200, 201]:
+                return await resp.json()
+            else:
+                raise Exception(f"Create Folder Failed: {await resp.text()}")
 
     async def upload_file(self, path: str, parentId: str = ""):
         if self.listener.is_cancelled:

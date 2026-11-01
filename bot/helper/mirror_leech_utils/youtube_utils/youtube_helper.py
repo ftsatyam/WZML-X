@@ -56,7 +56,6 @@ class YouTubeHelper:
                 self.proc_bytes += chunk_size
                 self.total_time += self.update_interval
             else:
-                # For YouTube uploads, we'll track progress differently
                 self.total_time += self.update_interval
 
     def authorize(self, user_id=""):

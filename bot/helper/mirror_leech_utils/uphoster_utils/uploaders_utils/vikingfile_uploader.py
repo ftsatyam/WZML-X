@@ -11,10 +11,9 @@ from tenacity import (
     wait_exponential,
 )
 
+from bot.core.config_manager import Config
 from bot.helper.ext_utils.bot_utils import sync_to_async
 from bot.helper.ext_utils.telegraph_helper import telegraph
-
-from bot.core.config_manager import Config
 
 from ..base import BaseUpload
 from ..common import ProgressFileReader

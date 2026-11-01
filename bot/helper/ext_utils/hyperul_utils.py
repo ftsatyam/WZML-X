@@ -11,12 +11,14 @@ except ImportError:
     FloodPremiumWait = FloodWait
 
 from os import path as ospath
-from aiofiles.os import path as aiopath, remove
+
+from aiofiles.os import path as aiopath
+from aiofiles.os import remove
 
 from ... import LOGGER
 from ...core.config_manager import Config
 from ...core.tg_client import TgClient
-from ..telegram_helper.tg_transfer import HypertgTransfer
+from ..ext_utils.bot_utils import parse_dest
 from ..ext_utils.media_utils import (
     get_audio_thumbnail,
     get_document_type,
@@ -24,8 +26,8 @@ from ..ext_utils.media_utils import (
     get_multiple_frames_thumbnail,
     get_video_thumbnail,
 )
-from ..ext_utils.bot_utils import parse_dest
 from ..ext_utils.tmdb_utils import get_auto_thumbnail
+from ..telegram_helper.tg_transfer import HypertgTransfer
 
 
 class HypertgUpload(HypertgTransfer):
@@ -240,9 +242,7 @@ class HypertgUpload(HypertgTransfer):
         user_only=False,
     ):
         if user_only:
-            candidates = {
-                k: self.work_loads.get(k, 0) for k in self.clients if k < 0
-            }
+            candidates = {k: self.work_loads.get(k, 0) for k in self.clients if k < 0}
             if not candidates:
                 idx = self._pick_client()
             else:

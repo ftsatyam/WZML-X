@@ -7,7 +7,6 @@ from aiofiles.os import path as aiopath
 from ... import LOGGER, bot_loop
 from ...core.config_manager import Config
 
-
 TUNNEL_URL_FILE = environ.get("TUNNEL_URL_FILE", "/data/tunnel_url.txt")
 
 

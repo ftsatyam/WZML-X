@@ -1,7 +1,8 @@
 from ast import literal_eval
 from importlib import import_module
 from os import getenv
-from wz_bin import bin_name
+
+from zake_bin import bin_name
 
 from ..helper.ext_utils.deprecations import Deprecations
 
@@ -15,7 +16,6 @@ class Config:
     BOT_TOKEN = ""
     HELPER_TOKENS = ""
     HELPER_STRINGS = ""
-    STREAM_TOKENS = ""
     HELPER_BOT_PROXIES = ""
     HELPER_USER_PROXIES = ""
     BOT_MAX_TASKS = 0
@@ -33,16 +33,11 @@ class Config:
     DISABLE_MULTI = False
     DISABLE_SEED = False
     DISABLE_FF_MODE = False
-    DISABLE_MEGA = False
-    DISABLE_PLUGINS = False
-    DISABLE_JD = True
-    DISABLE_NZB = True
     DISABLE_SEEDR = True
+    DISABLE_MEGA = False
     DISABLE_RSS = False
     DISABLE_SEARCH = False
-    DISABLE_STREAM = False
     DISABLE_YTDLP = False
-    PLUGIN_INDEXES = []
     EQUAL_SPLITS = False
     EXCLUDED_EXTENSIONS = ""
     FFMPEG_CMDS = {}
@@ -60,11 +55,10 @@ class Config:
     VIKINGFILE_HASH = ""
     VIKINGFILE_FOLDER = ""
     GDRIVE_ID = ""
-    GD_DESP = "Uploaded with WZ Bot"
-    AUTHOR_NAME = "WZML-X"
-    AUTHOR_URL = "https://t.me/WZML_X"
+    GD_DESP = "Uploaded with HKML-X"
+    AUTHOR_NAME = "HKML-X"
+    AUTHOR_URL = "https://github.com/Imkrishana/HKML-X"
     INSTADL_API = ""
-    IMDB_TEMPLATE = ""
     IMAGES = []
     IMG_SEARCH = ""
     IMG_PAGE = 1
@@ -74,15 +68,13 @@ class Config:
     INC_TASK_RESUME = False
     INDEX_URL = ""
     IS_TEAM_DRIVE = False
-    JD_EMAIL = ""
-    JD_PASS = ""
-    MEGA_EMAIL = ""
-    MEGA_PASSWORD = ""
     SEEDR_EMAIL = ""
     SEEDR_PASSWORD = ""
     SEEDR_DELETE_FOLDER = False
-    DIRECT_LIMIT = 0
+    MEGA_EMAIL = ""
+    MEGA_PASSWORD = ""
     MEGA_LIMIT = 0
+    DIRECT_LIMIT = 0
     TORRENT_LIMIT = 0
     GD_DL_LIMIT = 0
     RC_DL_LIMIT = 0
@@ -92,8 +84,6 @@ class Config:
     CLONE_FILTERS = {}
     CLONE_LIMIT = 0
     CLONE_TG_LIMIT = 10000
-    JD_LIMIT = 0
-    NZB_LIMIT = 0
     SEEDR_LIMIT = 0
     YTDLP_LIMIT = 0
     PLAYLIST_LIMIT = 0
@@ -116,16 +106,7 @@ class Config:
     HYPER_PIPELINE = 4
     HYPER_CHUNK = 512 * 1024
     MEM_BUDGET = 0
-    MEM_DEEP_STATS = False
-    STREAM_PIPELINE = 8
-    STREAM_CHUNK = 1048576
-    STREAM_PER_CLIENT = 6
-    STREAM_GATE = 96
-    CPU_LIMIT = 20
     FFMPEG_CORES = "auto"
-    THROTTLE_SERVICES = "auto"
-    HYDRA_IP = ""
-    HYDRA_API_KEY = ""
     NAME_SWAP = ""
     OWNER_ID = 0
     QUEUE_ALL = 0
@@ -144,6 +125,7 @@ class Config:
     SEARCH_API_LINK = ""
     SEARCH_LIMIT = 0
     SEARCH_PLUGINS = []
+    SAFE_MODE = False
     SET_COMMANDS = True
     STATUS_LIMIT = 10
     STATUS_UPDATE_INTERVAL = 15
@@ -166,19 +148,19 @@ class Config:
     DRIVE_CATEGORY_MODE = False
     DRIVE_CATEGORY_SA = ""
     UPSTREAM_REPO = ""
-    UPSTREAM_BRANCH = "wzv3"
-    USENET_SERVERS = []
+    UPSTREAM_BRANCH = "beta"
     USER_SESSION_STRING = ""
     USER_SESSION_KEY_TTL = 43200
     USER_SESSION_IDLE = 600
     USER_SESSION_MAX_CLIENTS = 8
     TRANSMISSION_MODE = "both"
     USE_SERVICE_ACCOUNTS = False
-    ENABLE_TELEMETRY = True
+    ENABLE_TELEMETRY = False
+    CRASH_REPORT_URL = ""
     WEB_ACCESS_PASSWORD = ""
     WEB_PINCODE = True
     YT_DLP_OPTIONS = {}
-    YT_DESP = "Uploaded with WZML-X bot"
+    YT_DESP = "Uploaded with HKML-X bot"
     YT_TAGS = ["telegram", "bot", "youtube"]
     YT_CATEGORY_ID = 22
     YT_PRIVACY_STATUS = "unlisted"
@@ -231,12 +213,6 @@ class Config:
                 ]:
                     if value:
                         value = value.strip("/")
-                elif attr == "USENET_SERVERS":
-                    try:
-                        if not value[0].get("host"):
-                            continue
-                    except Exception:
-                        continue
                 setattr(cls, attr, value)
         Deprecations.adopt_owner(
             cls, "LEECH_DUMP_CHAT", getattr(settings, "LEECH_DUMP_CHAT", None)
@@ -328,12 +304,6 @@ class Config:
                 ]:
                     if value:
                         value = value.strip("/")
-                elif key == "USENET_SERVERS":
-                    try:
-                        if not value[0].get("host"):
-                            value = []
-                    except Exception:
-                        value = []
                 value = cls._convert_env_type(key, value)
                 setattr(cls, key, value)
         Deprecations.adopt_owner(
@@ -358,4 +328,3 @@ class BinConfig:
     QBIT_NAME = bin_name(1)
     FFMPEG_NAME = bin_name(2)
     RCLONE_NAME = bin_name(3)
-    SABNZBD_NAME = bin_name(4)

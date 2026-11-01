@@ -11,10 +11,9 @@ from tenacity import (
     wait_exponential,
 )
 
+from bot.core.config_manager import Config
 from bot.helper.ext_utils.bot_utils import sync_to_async
 from bot.helper.ext_utils.telegraph_helper import telegraph
-
-from bot.core.config_manager import Config
 
 from ..base import BaseUpload
 from ..common import ProgressFileReader
@@ -77,19 +76,19 @@ class DevUploadsUpload(BaseUpload):
             data.add_field("sess_id", self._sess_id)
             data.add_field("utype", "reg")
             data.add_field("file", file, filename=file_name)
-            async with ClientSession() as session:
-                async with session.post(
-                    self._server_url, data=data, timeout=3600
-                ) as resp:
-                    result = await resp.json(content_type=None)
-                    if isinstance(result, list):
-                        result = result[0] if result else {}
-                    file_code = result.get("file_code")
-                    if file_code:
-                        if self._user_folder:
-                            await self.__set_file_folder(file_code)
-                        return f"https://devuploads.com/{file_code}"
-                    raise Exception(f"Upload failed: {result.get('message', result)}")
+            async with (
+                ClientSession() as session,
+                session.post(self._server_url, data=data, timeout=3600) as resp,
+            ):
+                result = await resp.json(content_type=None)
+                if isinstance(result, list):
+                    result = result[0] if result else {}
+                file_code = result.get("file_code")
+                if file_code:
+                    if self._user_folder:
+                        await self.__set_file_folder(file_code)
+                    return f"https://devuploads.com/{file_code}"
+                raise Exception(f"Upload failed: {result.get('message', result)}")
 
     async def _upload_dir(self, input_directory):
         links = []

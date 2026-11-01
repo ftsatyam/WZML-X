@@ -1,327 +1,343 @@
 <p align="center">
-   <img src="docs/w-icon.svg" alt="WZML-X logo" width="160">
-</p>
-
-<h1 align="center">WZML-X</h1>
-
-<p align="center">
-   Telegram mirroring and leeching platform with a container-based runtime, a lightweight web UI, and a configurable transfer pipeline.
+   Heroku Supported Lite Version Of WZML-X
 </p>
 
 <p align="center">
-   <a href="https://github.com/SilentDemonSD/WZML-X">
-      <img src="https://img.shields.io/github/stars/SilentDemonSD/WZML-X?style=for-the-badge&logo=github&label=Stars" alt="Stars">
-   </a>
+   <img src="docs/HK-icon.svg" alt="HKML-X logo" width="160">
+</p>
 
-   <a href="https://github.com/SilentDemonSD/WZML-X/search?l=python">
-      <img src="https://img.shields.io/github/languages/top/SilentDemonSD/WZML-X?style=for-the-badge&logo=python&label=Python" alt="Python">
-   </a>
+<h1 align="center">HKML-X</h1>
 
-   <a href="https://github.com/SilentDemonSD/WZML-X/blob/main/docker-compose.yml">
-      <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Compose">
-   </a>
+<p align="center">
+   A powerful Telegram bot for downloading files/folders from MEGA, Torrents, AllDebrid, Direct Cloud Links, Google Drive, Telegram, yt-dlp & Upload Back to Telegram, Google Drive, 70+ Rclone-supported cloud storage platforms & Uphoster Platforms(GoFile, PixelDrain, Devuploads, Vikingfile, Buzzheavier).
+</p>
 
-   <a href="https://t.me/WZML_X">
+<p align="center">
+   <a href="https://t.me/HKML_X">
       <img src="https://img.shields.io/badge/Telegram-Community-26A5E4?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram">
    </a>
-
-   <a href="https://github.com/SilentDemonSD/WZML-X/blob/main/LICENSE">
-      <img src="https://img.shields.io/github/license/SilentDemonSD/WZML-X?style=for-the-badge&label=License" alt="License">
-   </a>
-
-   <a href="https://github.com/SilentDemonSD/WZML-X/commits/main">
-      <img src="https://img.shields.io/github/last-commit/SilentDemonSD/WZML-X?style=for-the-badge&label=Last%20Commit" alt="Last Commit">
-   </a>
 </p>
 
-## Index
-
-<details open>
-   <summary>Table of Contents <kbd>Click Here</kbd></summary>
-
-   - [At a Glance](#at-a-glance)
-   - [Why Use It](#why-use-it)
-   - [What It Covers](#what-it-covers)
-   - [How It Runs](#how-it-runs)
-   - [Deployment](#deployment)
-   - [Configuration](#configuration)
-   - [Project Layout](#project-layout)
-   - [Documentation](#documentation)
-   - [Support](#support)
-   - [Credits](#credits)
-   - [License](#license)
-</details>
-
-## At a Glance
-
-| Area | Details |
-|---|---|
-| Runtime | Python Telegram bot + web UI |
-| Deployment | Docker & Docker Compose (buildx) |
-| Required config | `BOT_TOKEN`, `TELEGRAM_API`, `TELEGRAM_HASH`, `OWNER_ID`, `DATABASE_URL` |
-| License | [LICENSE](LICENSE) |
-
-## Why Use It
-
-WZML-X is built for users who want a single bot stack that can mirror, leech, manage files, and expose a simple web-based selection flow without stitching together multiple tools. The README focuses on what you need to deploy it quickly, understand the moving parts, and tune the behavior safely.
-
-## What It Covers
-
-| Capability | Outcome |
-|---|---|
-| Mirroring | Send files to Telegram with a controllable pipeline |
-| Leeching | Deliver files in the format you prefer, including document and media workflows |
-| File selection UI | Review and select torrent / NZB / upload contents before finalizing |
-| Multi-source downloads | Use qBittorrent, Aria2, JDownloader, Mega, NZB, and yt-dlp integrations |
-| Storage and upload paths | Push content to Google Drive, Rclone, Mega, and other supported routes |
-| Automation | Limit tasks, tune queues, and manage startup updates from one config layer |
-
-## How It Runs
-
-Deploy with Docker and provide the required configuration values. The container takes care of the runtime path, so users only need to build or start the image and set their settings.
+## Supported Platforms
 
 <details>
-   <summary>What you need <kbd>Click Here</kbd></summary>
+<summary><strong>Download From</strong></summary>
 
-   - Docker installed
-   - Your Telegram bot token and Telegram API credentials
-   - A MongoDB connection string
-   - The optional service credentials you want to enable, such as Drive, Rclone, Mega, JDownloader, or SABnzbd
+- Telegram (Files/Links)
+- Direct Download Links (DDL)
+- Torrents, magnet links & Seedr links
+- Google Drive and Rclone remotes
+- MEGA (Files & Folder Links)
+- Supported links through yt-dlp and AllDebrid
+</details>
+
+<details>
+<summary><strong>Upload To</strong></summary>
+
+- Telegram
+- Google Drive
+- Uphoster Platforms (GoFile, PixelDrain, Devuploads, Vikingfile, Buzzheavier)
+- 70+ Rclone Supported Platforms
+</details>
+
+## Variables
+
+<details>
+<summary><strong>Click Here</strong></summary>
+
+### Required Variables
+
+- **`BOT_TOKEN`** - Telegram bot token from [@BotFather](https://t.me/BotFather)
+- **`TELEGRAM_API`** - Telegram API ID from [my.telegram.org](https://my.telegram.org)
+- **`TELEGRAM_HASH`** - Telegram API hash from [my.telegram.org](https://my.telegram.org)
+- **`OWNER_ID`** - Your Telegram user ID
+- **`DATABASE_URL`** - MongoDB URL for persistence and database-backed features.
+
+### Optional Variables
+- **`AUTHORIZED_CHATS`** - Comma-separated chat IDs allowed to use the bot
+- **`SUDO_USERS`** - Telegram user IDs with elevated bot permissions
+- **`CMD_SUFFIX`** - Suffix added to bot commands
+- **`DEFAULT_UPLOAD`** - Default upload destination
+- **`GDRIVE_ID`**, **`RCLONE_PATH`** - Google Drive and Rclone destination settings
+- **`MEGA_EMAIL`**, **`MEGA_PASSWORD`** - Premium Mega account credentials for higher download limits
+- **`SEEDR_EMAIL`**, **`SEEDR_PASSWORD`** - Seedr account credentials
+- **`ALLDEBRID_API_KEY`** - AllDebrid API key
+- **`DISABLE_*`** - Disable supported integrations or features
+- **`*_LIMIT`** - Source and task size limits in GB; `0` means Unlimited for that setting
+- **`QUEUE_ALL`**, **`QUEUE_DOWNLOAD`**, **`QUEUE_UPLOAD`** - Task queue limits
+- **`WEB_PINCODE`** - Control PIN protection for the torrent-selection web interface
+- **`UPSTREAM_REPO`**, **`UPSTREAM_BRANCH`** - Repository and branch for auto update.
+- **`BASE_URL`**, **`TG_PROXY`**, **`USER_SESSION_STRING`** - Web, proxy, or user-session settings
+
+For every supported option and its default, see [`config_sample.py`](config_sample.py).
 </details>
 
 ## Deployment
 
-<details open>
-   <summary>VPS / Dedicated Server (Recommended)</summary>
+</details>
 
+<details>
+  <summary><strong>Heroku CLI</strong></summary>
+
+1. **Login to Heroku**
    ```bash
-   git clone https://github.com/SilentDemonSD/WZML-X.git
-   cd WZML-X
+   heroku login
+   ```
+
+2. **Clone Repository**
+   ```bash
+   git clone https://github.com/ImKrishana/HK-Deploy DP && cd DP
+   ```
+
+3. **Create `config.py` File**
+   ```bash
+   nano config.py
+   ```
+
+   Add the required variables:
+   ```python
+   BOT_TOKEN = "your_bot_token"
+   TELEGRAM_API = 12345678
+   TELEGRAM_HASH = "your_telegram_api_hash"
+   DATABASE_URL = "your_mongodb_url"
+   OWNER_ID = 123456789
+   UPSTREAM_REPO = "https://github.com/ImKrishana/HKML-X"
+   UPSTREAM_BRANCH = "main"
+   ```
+
+4. **Commit Changes**
+   ```bash
+   git add . -f
+   git commit -m "thezake"
+   ```
+
+5. **Create Heroku App**
+   ```bash
+   heroku create APP_NAME
+   ```
+
+6. **Add Remote**
+   ```bash
+   heroku git:remote -a APP_NAME
+   ```
+
+7. **Set Container Stack**
+   ```bash
+   heroku stack:set container
+   ```
+
+8. **Deploy**
+   ```bash
+   git push heroku main -f
+   ```
+
+9. **Check Logs**
+   ```bash
+   heroku logs --tail
+   ```
+
+</details>
+
+<details>
+<summary><strong>VPS/Locally
+</strong></summary>
+
+### Prerequisites
+
+Before starting, ensure you have:
+
+- Docker Engine installed ([Installation Guide](https://docs.docker.com/engine/install/))
+- Docker Compose v2 installed ([Installation Guide](https://docs.docker.com/compose/install/))
+- A Telegram bot token, API ID, API hash, and owner ID
+- A MongoDB URL if you want persistence or database-backed features
+
+### Installation Steps
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/ImKrishana/HKML-X HKML-X
+   cd HKML-X
+   ```
+2. **Create the Configuration File**
+   ```bash
    cp config_sample.py config.py
-   # Edit config.py with your values
-   docker buildx compose up -d
    ```
-
-   The bot runs behind a Cloudflare quick tunnel by default. Check the tunnel URL:
-
+   Edit `config.py` and set the required values:
+   ```python
+   BOT_TOKEN = "your_bot_token"
+   TELEGRAM_API = 12345678
+   TELEGRAM_HASH = "your_telegram_api_hash"
+   OWNER_ID = 123456789
+   DATABASE_URL = "your_mongodb_url"  # optional
+   ```
+   qBittorrent reads its profile configuration from `qBittorrent/config/qBittorrent.conf`.
+3. **Start the Bot**
    ```bash
-   docker compose logs tunnel
+   docker compose up -d --build
    ```
-
-   You'll see a `https://*.trycloudflare.com` URL — that's your bot's web UI.
-
-   To stop:
-
+4. **Verify the Services**
    ```bash
-   docker buildx compose down
+   docker compose ps
    ```
-</details>
-
-<details>
-   <summary>VPS with VPN (Gluetun)</summary>
-
-   1. Uncomment the `gluetun` service in `docker-compose.yml`
-   2. Fill in your VPN provider credentials
-   3. Set `network_mode: "service:gluetun"` on the `app` service
-   4. Start:
-
+   The Compose stack starts the bot and a Cloudflare Quick Tunnel. The temporary public URL appears in the tunnel logs:
    ```bash
-   docker buildx compose up -d
+   docker compose logs -f tunnel
    ```
 
-   All traffic (including the cloudflared tunnel) routes through the VPN.
+### Xtras
+
+**View Bot Logs:**
+```bash
+docker compose logs -f app
+```
+
+**View Tunnel Logs:**
+```bash
+docker compose logs -f tunnel
+```
+
+**Restart the Services:**
+```bash
+docker compose restart
+```
+
+**Update and Rebuild:**
+```bash
+git pull
+docker compose up -d --build
+```
+
+**Stop the Stack:**
+```bash
+docker compose down
+```
+</details>
+
+## Admin Side
+
+The admin commands below are restricted to the bot owner and sudo users.
+
+<details>
+<summary><strong>Authorization Management</strong></summary>
+
+### Authorize Users/Chats
+
+Authorize the current chat:
+```
+/authorize
+```
+
+Authorize a specific chat or user:
+```
+/authorize CHAT_ID
+```
+
+Authorize a topic in a group:
+```
+/authorize CHAT_ID|TOPIC_ID
+```
+
+### Unauthorize Users/Chats
+
+Unauthorize the current chat:
+```
+/unauthorize
+```
+
+Unauthorize a specific chat or topic:
+```
+/unauthorize CHAT_ID
+/unauthorize CHAT_ID|TOPIC_ID
+```
+
+### Add Sudo Users
+
+Add a sudo user by ID or reply to their message:
+```
+/addsudo USER_ID
+```
+
+### Remove Sudo Users
+
+Remove a sudo user by ID or by replying to their message:
+```
+/rmsudo USER_ID
+```
+
+### Blacklist Users
+
+Permanently blacklist a user:
+```
+/blacklist USER_ID
+```
+Temporarily blacklist a user (time units: `d`, `h`, or `m`):
+```
+/blacklist USER_ID -t 1d
+```
+You can also reply to a user's message and use `/blacklist -t 2h`.
+
+### Remove a User from the Blacklist
+
+Remove a user by ID or by replying to their message:
+```
+/rmblacklist USER_ID
+```
 </details>
 
 <details>
-   <summary>Multi-Instance (Multiple Bots)</summary>
+<summary><strong>Broadcast System</strong></summary>
 
-   Each bot needs its own `config.py` and data volumes. Example for a second bot:
+Reply to a message and broadcast it to users who have started the bot:
+```
+/broadcast
+```
 
-   1. Create `config2.py` with different `BOT_TOKEN`, `OWNER_ID`, etc.
-   2. Uncomment `app2` and `tunnel2` in `docker-compose.yml`
-   3. Edit volume mounts to use `config2.py` and separate data dirs
-   4. Start:
+**Forward with the original sender tag:**
+```
+/broadcast -f
+```
 
-   ```bash
-   docker buildx compose up -d
-   ```
+**Send quietly:**
+```
+/broadcast -q
+```
 
-   Each bot gets its own cloudflared tunnel URL. Admin ports (qBittorrent, SABnzbd) are mapped to different host ports (`127.0.0.1:8091`, etc.).
-</details>
+**Edit a broadcast** by replying with the edited message and its broadcast ID:
+```
+/broadcast BROADCAST_ID -e
+```
 
-<details>
-   <summary>Single Container (Manual)</summary>
+**Delete a broadcast:**
+```
+/broadcast BROADCAST_ID -d
+```
 
-   ```bash
-   git clone https://github.com/SilentDemonSD/WZML-X.git
-   cd WZML-X
-   docker build -t wzmlx .
-   docker run -p 8080:8080 wzmlx
-   ```
-</details>
-
-<details>
-   <summary>Deployment Notes</summary>
-
-   1. If you use qBittorrent, tune `AsyncIOThreadsCount` to your machine size.
-   2. Stop the container before removing it, and remove the container before pruning images.
-   3. Useful cleanup commands:
-
-   ```bash
-   docker container prune
-   docker image prune -a
-   ```
-</details>
-
-<details>
-   <summary>Legacy Workflow Guide</summary>
-
-   Some users still rely on the external workflow path referenced by the previous README:
-
-   - [WZ Deploy workflow guide](https://github.com/SilentDemonSD/WZ-Deploy/tree/main?tab=readme-ov-file#2%EF%B8%8F%E2%83%A3-method-2-github-workflow-guide)
-
-   Keep this only if that workflow still matches your deployment style.
-</details>
-
-## Configuration
-
-Start with the required values:
-
-- `BOT_TOKEN`
-- `TELEGRAM_API`
-- `TELEGRAM_HASH`
-- `OWNER_ID`
-- `DATABASE_URL`
-
-Then tune the optional behavior from `config_sample.py`.
-
-<details>
-   <summary>Important user-facing settings</summary>
-
-   | Setting | User impact |
-   |---|---|
-   | `DEFAULT_LANG` | Bot language |
-   | `STATUS_LIMIT` | How much status data is shown |
-   | `DEFAULT_UPLOAD` | Default upload target |
-   | `LEECH_SPLIT_SIZE` | How large leech outputs are split |
-   | `QUEUE_ALL`, `QUEUE_DOWNLOAD`, `QUEUE_UPLOAD` | Queue pressure and concurrency |
-   | `SHOW_CLOUD_LINK` | Whether cloud links are shown to users |
-   | `WEB_PINCODE` | Protects web access to file selection |
-</details>
-
-<details>
-   <summary>Integrations available in config</summary>
-
-   The sample config also covers:
-
-   - qBittorrent and Aria2-related controls
-   - JDownloader login details
-   - Mega credentials
-   - SABnzbd server definitions
-   - Google Drive settings
-   - RSS, search, media metadata, and logging controls
-</details>
-
-<details>
-   <summary>AllDebrid (<code>-ad</code>)</summary>
-
-   Set `ALLDEBRID_API_KEY` (default: empty, feature off) in `config_sample.py`,
-   in the environment, or from **Bot Settings → Config Variables → ALLDEBRID_API_KEY**.
-
-   Add `-ad` to a mirror/leech command to route the input through AllDebrid:
-
-   - `/mirror <filehost link> -ad` unlocks premium hosts (1fichier, rapidgator,
-     mega, ...) and hands the direct link to the normal downloader.
-   - `/leech <magnet> -ad` (or reply to a `.torrent` with `-ad`) uploads the
-     torrent to AllDebrid, waits for it to finish there, then downloads every
-     file from AllDebrid's CDN — aria2/qBittorrent are bypassed entirely.
-
-   `ALLDEBRID_NO_SEED_TIMEOUT` (default: `180`) caps how many seconds a magnet may
-   stall with no seeders and no download progress before the task is aborted.
-   Set it to `0` to disable the check and rely on AllDebrid's own dead-torrent
-   reporting instead.
-
-   The flag is documented in the mirror help menu under the **AllDebrid** button.
-   Without a key the task fails with `ALLDEBRID_API_KEY is not configured`;
-   without `-ad` nothing changes. Magnets stop after 3 min with no seeders and
-   2 h overall, and are removed from your AllDebrid history if the task fails.
-</details>
-
-## Project Layout
-
-| Path | Purpose |
+| Flag | Description |
 |---|---|
-| `bot/` | Bot core, handlers, listeners, and modules |
-| `web/` | FastAPI app, templates, and the file selector UI |
-| `gen_scripts/` | Setup helpers for sessions, tokens, and drive configuration |
-| `plugins/` | Optional bot plugins |
-| `qBittorrent/` | Default qBittorrent configuration |
-| `sabnzbd/` | Default SABnzbd configuration |
+| `-f` or `-forward` | Forward with the original sender tag |
+| `-q` or `-quiet` | Send without notification sound |
+| `-e` or `-edit` | Edit a broadcast using a reply |
+| `-d` or `-delete` | Delete a broadcast |
 
-## Documentation
-
-> [!NOTE]
-> This documentation is still being expanded.
-
-- Full guides: `docs/`
-- Deployment notes: the docs site linked from the repository at WZ Docs
-- Configuration reference: `config_sample.py`
-
-## Support
-
-<details>
-   <summary>Join Community</summary>
-
-   - Telegram channel: https://t.me/WZML_X
-   - Support group: https://t.me/WZML_Support
+**Important Notes:**
+- Broadcasting requires `DATABASE_URL` so the bot can retrieve its private-message users.
+- Broadcast IDs can be edited or deleted only until the bot restarts.
+- Forwarded messages cannot be edited.
 </details>
 
-## Credits
-
-WZML-X is a fork of [mirror-leech-telegram-bot](https://github.com/anasty17/mirror-leech-telegram-bot). The base project belongs to [anasty17](https://github.com/anasty17) and upstream contributors.
-
 <details>
-   <summary>Bot Authors</summary>
+<summary><strong>Disclaimer</strong></summary>
 
-   <table>
-      <thead>
-         <tr>
-            <th>Avatar</th>
-            <th>Name</th>
-            <th>Role</th>
-            <th>Profile</th>
-         </tr>
-      </thead>
-      <tbody>
-         <tr>
-            <td><img src="https://avatars.githubusercontent.com/u/105407900?v=4" width="72" alt="SilentDemonSD"></td>
-            <td>SilentDemonSD</td>
-            <td>Author, UI design, and custom features</td>
-            <td><a href="https://github.com/SilentDemonSD">GitHub</a></td>
-         </tr>
-         <tr>
-            <td><img src="https://avatars.githubusercontent.com/u/93116400?v=4" width="72" alt="RjRiajul"></td>
-            <td>RjRiajul</td>
-            <td>Co-author and maintainer</td>
-            <td><a href="https://github.com/rjriajul">GitHub</a></td>
-         </tr>
-         <tr>
-            <td><img src="https://avatars.githubusercontent.com/u/113664541?v=4" width="72" alt="CodeWithWeeb"></td>
-            <td>CodeWithWeeb</td>
-            <td>Feature expansion and wrap-up improvements</td>
-            <td><a href="https://github.com/weebzone">GitHub</a></td>
-         </tr>
-         <tr>
-            <td><img src="https://avatars.githubusercontent.com/u/84721324?v=4" width="72" alt="Maverick"></td>
-            <td>Maverick</td>
-            <td>Co-author and bug testing</td>
-            <td><a href="https://github.com/MajnuRangeela">GitHub</a></td>
-         </tr>
-      </tbody>
-   </table>
+Use HKML-X only with content and services you are authorized to access. You are responsible for following applicable laws, copyright rules, and the terms of the services you use.
 </details>
 
-## License
+---
 
-This project is distributed under the terms of the repository license. See [LICENSE](LICENSE) for the full text.
+[![License](https://img.shields.io/github/license/ImKrishana/HKML-X)](https://github.com/ImKrishana/HKML-X/blob/beta/LICENSE)
 
+If you like this project, don't forget to give it a Star !
+
+**Developer:** [ImKrishana](https://github.com/ImKrishana)  
+**Base Repo:** [WZML-X](https://github.com/SilentDemonSD/WZML-X)
+
+HKML-X builds on the open-source [mirror-leech-telegram-bot](https://github.com/anasty17/mirror-leech-telegram-bot) and its contributors. The project is distributed under the [GNU Affero General Public License v3.0](LICENSE).
